@@ -13,6 +13,7 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
 
     .header {
@@ -20,10 +21,11 @@
       color: white;
       padding: 20px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 100;
     }
 
     .header-content {
-      max-width: 900px;
+      max-width: 1400px;
       margin: 0 auto;
       display: flex;
       justify-content: space-between;
@@ -54,21 +56,33 @@
       cursor: pointer;
       font-size: 14px;
       transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .header-btn:hover {
       background: rgba(255,255,255,0.3);
     }
 
+    .main-content {
+      flex: 1;
+      display: flex;
+      position: relative;
+      overflow: hidden;
+    }
+
     .chat-container {
       flex: 1;
-      max-width: 900px;
-      width: 100%;
-      margin: 0 auto;
       display: flex;
       flex-direction: column;
       padding: 20px;
       overflow: hidden;
+      transition: margin-right 0.3s ease;
+    }
+
+    .chat-container.panel-open {
+      margin-right: 380px;
     }
 
     .messages {
@@ -367,6 +381,246 @@
     .typing-indicator span:nth-child(3) {
       animation-delay: 0.4s;
     }
+
+    /* Side Panel Styles */
+    .side-panel {
+      position: fixed;
+      top: 0;
+      right: -380px;
+      width: 380px;
+      height: 100vh;
+      background: white;
+      box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+      transition: right 0.3s ease;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .side-panel.open {
+      right: 0;
+    }
+
+    .panel-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .panel-close {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .panel-close:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .panel-section {
+      margin-bottom: 24px;
+    }
+
+    .panel-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .setting-group {
+      margin-bottom: 16px;
+    }
+
+    .setting-label {
+      font-size: 13px;
+      color: #4a5568;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .setting-value {
+      font-weight: 600;
+      color: #667eea;
+    }
+
+    .setting-slider {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #e2e8f0;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .setting-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      cursor: pointer;
+    }
+
+    .setting-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      cursor: pointer;
+      border: none;
+    }
+
+    .setting-select {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 13px;
+      background: white;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .setting-select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .rag-file-upload {
+      border: 2px dashed #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .rag-file-upload:hover {
+      border-color: #667eea;
+      background: #f7fafc;
+    }
+
+    .rag-file-upload-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .rag-file-upload-text {
+      font-size: 13px;
+      color: #718096;
+    }
+
+    .rag-file-list {
+      margin-top: 12px;
+    }
+
+    .rag-file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px;
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .rag-file-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .rag-file-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .rag-file-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+      transition: transform 0.2s;
+    }
+
+    .rag-file-btn:hover {
+      transform: scale(1.2);
+    }
+
+    .panel-toggle-btn {
+      position: fixed;
+      right: 20px;
+      bottom: 80px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      cursor: pointer;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+      z-index: 150;
+    }
+
+    .panel-toggle-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .template-preview {
+      margin-top: 8px;
+      padding: 10px;
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #718096;
+      max-height: 100px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .template-preview.show {
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -378,73 +632,177 @@
         <div class="header-status" id="statusText">Select a model in Advanced Settings</div>
       </div>
       <div class="header-buttons">
-        <button class="header-btn" onclick="clearChat()">Clear Chat</button>
-        <button class="header-btn" onclick="window.location.href='/advanced-settings'">Settings</button>
-        <button class="header-btn" onclick="window.location.href='/'">Home</button>
+        <button class="header-btn" onclick="downloadConversation()">
+          <span>💾</span> Download Chat
+        </button>
+        <button class="header-btn" onclick="clearChat()">
+          <span>🗑️</span> Clear
+        </button>
+        <button class="header-btn" onclick="window.location.href='/advanced-settings'">
+          <span>⚙️</span> Models
+        </button>
+        <button class="header-btn" onclick="window.location.href='/'">
+          <span>🏠</span> Home
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Chat Container -->
-  <div class="chat-container">
-    <div class="error-message" id="errorMessage"></div>
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Chat Container -->
+    <div class="chat-container" id="chatContainer">
+      <div class="error-message" id="errorMessage"></div>
 
-    <div class="messages" id="messages">
-      <div class="empty-state">
-        <div class="empty-state-icon">💬</div>
-        <div class="empty-state-title">Start Chatting</div>
-        <div class="empty-state-text">
-          Select a model in Advanced Settings, then start a conversation!<br>
-          You can upload images, documents, or use voice input.
+      <div class="messages" id="messages">
+        <div class="empty-state">
+          <div class="empty-state-icon">💬</div>
+          <div class="empty-state-title">Start Chatting</div>
+          <div class="empty-state-text">
+            Select a model in Advanced Settings, then start a conversation!<br>
+            You can upload images, documents, or use voice input.
+          </div>
+        </div>
+      </div>
+
+      <div class="loading-indicator" id="loadingIndicator">
+        <div class="typing-indicator">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        Thinking...
+      </div>
+
+      <div class="input-container">
+        <!-- Attachments Preview -->
+        <div class="attachments-preview" id="attachmentsPreview"></div>
+
+        <!-- Toolbar with File Upload and Voice -->
+        <div class="input-toolbar">
+          <button class="toolbar-btn" onclick="document.getElementById('fileInput').click()">
+            <span>📎</span> Attach File
+          </button>
+          <button class="toolbar-btn" id="voiceBtn" onclick="toggleVoiceInput()">
+            <span id="voiceIcon">🎤</span> <span id="voiceText">Voice Input</span>
+          </button>
+          <input type="file" id="fileInput" multiple accept="image/*,.pdf,.txt,.doc,.docx" onchange="handleFileSelect(event)">
+        </div>
+
+        <!-- Input Wrapper -->
+        <div class="input-wrapper">
+          <textarea
+            id="messageInput"
+            class="input-textarea"
+            placeholder="Type your message here... (Shift+Enter for new line, Enter to send)"
+            rows="2"
+          ></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+            Send
+          </button>
         </div>
       </div>
     </div>
 
-    <div class="loading-indicator" id="loadingIndicator">
-      <div class="typing-indicator">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
-      Thinking...
-    </div>
-
-    <div class="input-container">
-      <!-- Attachments Preview -->
-      <div class="attachments-preview" id="attachmentsPreview"></div>
-
-      <!-- Toolbar with File Upload and Voice -->
-      <div class="input-toolbar">
-        <button class="toolbar-btn" onclick="document.getElementById('fileInput').click()">
-          <span>📎</span> Attach File
-        </button>
-        <button class="toolbar-btn" id="voiceBtn" onclick="toggleVoiceInput()">
-          <span id="voiceIcon">🎤</span> <span id="voiceText">Voice Input</span>
-        </button>
-        <input type="file" id="fileInput" multiple accept="image/*,.pdf,.txt,.doc,.docx" onchange="handleFileSelect(event)">
+    <!-- Settings Side Panel -->
+    <div class="side-panel" id="sidePanel">
+      <div class="panel-header">
+        <div class="panel-title">⚙️ Chat Settings</div>
+        <button class="panel-close" onclick="togglePanel()">×</button>
       </div>
 
-      <!-- Input Wrapper -->
-      <div class="input-wrapper">
-        <textarea
-          id="messageInput"
-          class="input-textarea"
-          placeholder="Type your message here... (Shift+Enter for new line, Enter to send)"
-          rows="2"
-        ></textarea>
-        <button class="send-btn" id="sendBtn" onclick="sendMessage()">
-          Send
-        </button>
+      <div class="panel-content">
+        <!-- Sampling Parameters -->
+        <div class="panel-section">
+          <div class="panel-section-title">🎛️ Sampling Parameters</div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              <span>Temperature</span>
+              <span class="setting-value" id="tempValue">0.7</span>
+            </div>
+            <input type="range" class="setting-slider" id="temperature"
+                   min="0" max="2" step="0.1" value="0.7"
+                   oninput="updateSettingValue('temperature', 'tempValue')">
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              <span>Max Tokens</span>
+              <span class="setting-value" id="tokensValue">2000</span>
+            </div>
+            <input type="range" class="setting-slider" id="maxTokens"
+                   min="100" max="4000" step="100" value="2000"
+                   oninput="updateSettingValue('maxTokens', 'tokensValue')">
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              <span>Top P</span>
+              <span class="setting-value" id="topPValue">0.9</span>
+            </div>
+            <input type="range" class="setting-slider" id="topP"
+                   min="0" max="1" step="0.05" value="0.9"
+                   oninput="updateSettingValue('topP', 'topPValue')">
+          </div>
+        </div>
+
+        <!-- System Prompt Template -->
+        <div class="panel-section">
+          <div class="panel-section-title">📝 System Prompt</div>
+          <div class="setting-group">
+            <select class="setting-select" id="systemPromptSelect" onchange="updateSystemPromptPreview()">
+              <option value="">None - Default behavior</option>
+            </select>
+            <div class="template-preview" id="systemPromptPreview"></div>
+          </div>
+        </div>
+
+        <!-- Chat Template -->
+        <div class="panel-section">
+          <div class="panel-section-title">💬 Chat Template</div>
+          <div class="setting-group">
+            <select class="setting-select" id="chatTemplateSelect" onchange="updateChatTemplatePreview()">
+              <option value="">Auto - Use model default</option>
+            </select>
+            <div class="template-preview" id="chatTemplatePreview"></div>
+          </div>
+        </div>
+
+        <!-- RAG Context Files -->
+        <div class="panel-section">
+          <div class="panel-section-title">📚 RAG Context Files</div>
+          <div class="setting-group">
+            <div class="rag-file-upload" onclick="document.getElementById('ragFileInput').click()">
+              <div class="rag-file-upload-icon">📄</div>
+              <div class="rag-file-upload-text">
+                Click or drag files here<br>
+                <small>Upload reference documents for context</small>
+              </div>
+            </div>
+            <input type="file" id="ragFileInput" style="display: none;"
+                   multiple accept=".txt,.md,.pdf,.doc,.docx,.json"
+                   onchange="handleRAGFileSelect(event)">
+            <div class="rag-file-list" id="ragFileList"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
+  <!-- Floating Panel Toggle Button -->
+  <button class="panel-toggle-btn" id="panelToggleBtn" onclick="togglePanel()">⚙️</button>
+
   <script>
     let isLoading = false;
     let attachedFiles = [];
+    let ragFiles = [];
     let isRecording = false;
     let recognition = null;
     let transcript = '';
+    let systemPrompts = [];
+    let chatTemplates = [];
+    let isPanelOpen = false;
 
     // Initialize speech recognition if available
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -472,6 +830,182 @@
       recognition.onend = () => {
         stopVoiceInput();
       };
+    }
+
+    // Toggle side panel
+    function togglePanel() {
+      isPanelOpen = !isPanelOpen;
+      const panel = document.getElementById('sidePanel');
+      const chatContainer = document.getElementById('chatContainer');
+
+      if (isPanelOpen) {
+        panel.classList.add('open');
+        chatContainer.classList.add('panel-open');
+      } else {
+        panel.classList.remove('open');
+        chatContainer.classList.remove('panel-open');
+      }
+    }
+
+    // Update setting value display
+    function updateSettingValue(settingId, valueId) {
+      const slider = document.getElementById(settingId);
+      const valueDisplay = document.getElementById(valueId);
+      valueDisplay.textContent = slider.value;
+    }
+
+    // Update system prompt preview
+    function updateSystemPromptPreview() {
+      const select = document.getElementById('systemPromptSelect');
+      const preview = document.getElementById('systemPromptPreview');
+
+      if (select.value) {
+        const prompt = systemPrompts.find(p => p.id === select.value);
+        if (prompt) {
+          preview.textContent = prompt.prompt;
+          preview.classList.add('show');
+        }
+      } else {
+        preview.classList.remove('show');
+      }
+    }
+
+    // Update chat template preview
+    function updateChatTemplatePreview() {
+      const select = document.getElementById('chatTemplateSelect');
+      const preview = document.getElementById('chatTemplatePreview');
+
+      if (select.value) {
+        const template = chatTemplates.find(t => t.id === select.value);
+        if (template) {
+          preview.textContent = template.description || template.format;
+          preview.classList.add('show');
+        }
+      } else {
+        preview.classList.remove('show');
+      }
+    }
+
+    // Load presets (system prompts and chat templates)
+    async function loadPresets() {
+      try {
+        const response = await fetch('/api/presets');
+        const data = await response.json();
+
+        if (data.success) {
+          systemPrompts = data.system_prompts;
+          chatTemplates = data.chat_templates;
+
+          // Populate system prompt dropdown
+          const systemSelect = document.getElementById('systemPromptSelect');
+          systemPrompts.forEach(prompt => {
+            const option = document.createElement('option');
+            option.value = prompt.id;
+            option.textContent = prompt.name;
+            systemSelect.appendChild(option);
+          });
+
+          // Populate chat template dropdown
+          const chatSelect = document.getElementById('chatTemplateSelect');
+          chatTemplates.forEach(template => {
+            const option = document.createElement('option');
+            option.value = template.id;
+            option.textContent = template.name;
+            chatSelect.appendChild(option);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading presets:', error);
+      }
+    }
+
+    // Handle RAG file selection
+    function handleRAGFileSelect(event) {
+      const files = Array.from(event.target.files);
+      files.forEach(file => {
+        // Check if file already added
+        if (!ragFiles.find(f => f.name === file.name)) {
+          ragFiles.push(file);
+          addRAGFileToList(file);
+        }
+      });
+      event.target.value = ''; // Reset input
+    }
+
+    // Add RAG file to list
+    function addRAGFileToList(file) {
+      const list = document.getElementById('ragFileList');
+
+      const item = document.createElement('div');
+      item.className = 'rag-file-item';
+      item.dataset.filename = file.name;
+
+      item.innerHTML = `
+        <div class="rag-file-name" title="${file.name}">📄 ${file.name} (${formatFileSize(file.size)})</div>
+        <div class="rag-file-actions">
+          <button class="rag-file-btn" onclick="downloadRAGFile('${file.name}')" title="Download">💾</button>
+          <button class="rag-file-btn" onclick="removeRAGFile('${file.name}')" title="Remove">🗑️</button>
+        </div>
+      `;
+
+      list.appendChild(item);
+    }
+
+    // Remove RAG file
+    function removeRAGFile(filename) {
+      ragFiles = ragFiles.filter(f => f.name !== filename);
+      const list = document.getElementById('ragFileList');
+      const item = list.querySelector(`[data-filename="${filename}"]`);
+      if (item) item.remove();
+    }
+
+    // Download RAG file
+    function downloadRAGFile(filename) {
+      const file = ragFiles.find(f => f.name === filename);
+      if (file) {
+        const url = URL.createObjectURL(file);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    // Download conversation
+    function downloadConversation() {
+      const messages = document.getElementById('messages');
+      const messageElements = messages.querySelectorAll('.message');
+
+      if (messageElements.length === 0) {
+        showError('No conversation to download');
+        return;
+      }
+
+      // Create conversation array
+      const conversation = [];
+      messageElements.forEach(msg => {
+        const role = msg.classList.contains('user') ? 'user' : 'assistant';
+        const content = msg.querySelector('.message-content').textContent;
+        const time = msg.querySelector('.message-time').textContent;
+        conversation.push({ role, content, time });
+      });
+
+      // Create JSON file
+      const json = JSON.stringify({
+        model: document.getElementById('statusText').textContent,
+        timestamp: new Date().toISOString(),
+        messages: conversation
+      }, null, 2);
+
+      // Download
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chat-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
     }
 
     // Check chat status on load
@@ -594,6 +1128,28 @@
       }
     }
 
+    // Get current settings
+    function getCurrentSettings() {
+      const systemPromptSelect = document.getElementById('systemPromptSelect');
+      const selectedPrompt = systemPrompts.find(p => p.id === systemPromptSelect.value);
+
+      return {
+        temperature: parseFloat(document.getElementById('temperature').value),
+        max_tokens: parseInt(document.getElementById('maxTokens').value),
+        top_p: parseFloat(document.getElementById('topP').value),
+        system_prompt: selectedPrompt ? selectedPrompt.prompt : null,
+        chat_template: document.getElementById('chatTemplateSelect').value || null,
+        rag_context: ragFiles.length > 0 ? getRagContext() : null
+      };
+    }
+
+    // Get RAG context from uploaded files
+    function getRagContext() {
+      // For now, just return file names
+      // In production, you'd read file contents
+      return ragFiles.map(f => `[File: ${f.name}]`).join('\n');
+    }
+
     // Send message
     async function sendMessage() {
       if (isLoading) return;
@@ -602,6 +1158,15 @@
       const message = input.value.trim();
 
       if (!message && attachedFiles.length === 0) return;
+
+      // Get current settings
+      const settings = getCurrentSettings();
+
+      // Build full message with RAG context if present
+      let fullMessage = message;
+      if (settings.rag_context) {
+        fullMessage = `Context:\n${settings.rag_context}\n\nUser Query: ${message}`;
+      }
 
       // Add user message to UI
       addMessage('user', message, attachedFiles);
@@ -624,9 +1189,11 @@
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
-            message: message || '[Image/File attached]',
-            temperature: 0.7,
-            max_tokens: 2000
+            message: fullMessage || '[Image/File attached]',
+            temperature: settings.temperature,
+            max_tokens: settings.max_tokens,
+            top_p: settings.top_p,
+            system_prompt: settings.system_prompt
           })
         });
 
@@ -758,6 +1325,7 @@
 
     // Initialize
     checkStatus();
+    loadPresets();
   </script>
 </body>
 </html>
