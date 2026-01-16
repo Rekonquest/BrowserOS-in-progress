@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chat - BrowserOS Demo</title>
+  <!-- jsPDF for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -712,6 +714,22 @@
       </div>
 
       <div class="panel-content">
+        <!-- Current Model Info -->
+        <div class="panel-section">
+          <div class="panel-section-title">🤖 Current Model</div>
+          <div class="setting-group">
+            <div style="padding: 12px; background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 8px;">
+              <div style="font-size: 13px; color: #4a5568; margin-bottom: 4px;">Model ID:</div>
+              <div id="currentModelDisplay" style="font-size: 14px; font-weight: 600; color: #2d3748; word-break: break-all;">
+                No model selected
+              </div>
+              <div style="font-size: 12px; color: #718096; margin-top: 8px;" id="modelBackendDisplay">
+                Select a model in Advanced Settings
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Sampling Parameters -->
         <div class="panel-section">
           <div class="panel-section-title">🎛️ Sampling Parameters</div>
@@ -972,7 +990,7 @@
       }
     }
 
-    // Download conversation
+    // Download conversation as PDF
     function downloadConversation() {
       const messages = document.getElementById('messages');
       const messageElements = messages.querySelectorAll('.message');
@@ -982,30 +1000,91 @@
         return;
       }
 
-      // Create conversation array
-      const conversation = [];
-      messageElements.forEach(msg => {
-        const role = msg.classList.contains('user') ? 'user' : 'assistant';
-        const content = msg.querySelector('.message-content').textContent;
-        const time = msg.querySelector('.message-time').textContent;
-        conversation.push({ role, content, time });
-      });
+      try {
+        // Create new jsPDF instance
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
 
-      // Create JSON file
-      const json = JSON.stringify({
-        model: document.getElementById('statusText').textContent,
-        timestamp: new Date().toISOString(),
-        messages: conversation
-      }, null, 2);
+        // Set up PDF
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 15;
+        const maxWidth = pageWidth - (margin * 2);
+        let yPos = margin;
 
-      // Download
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `chat-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+        // Add header
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text('Chat Conversation Export', margin, yPos);
+        yPos += 10;
+
+        // Add metadata
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        const modelText = document.getElementById('statusText').textContent;
+        const dateText = new Date().toLocaleString();
+        doc.text(`${modelText}`, margin, yPos);
+        yPos += 5;
+        doc.text(`Date: ${dateText}`, margin, yPos);
+        yPos += 10;
+
+        // Add separator line
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 10;
+
+        // Add messages
+        messageElements.forEach((msg, index) => {
+          const role = msg.classList.contains('user') ? 'USER' : 'ASSISTANT';
+          const content = msg.querySelector('.message-content').textContent;
+          const time = msg.querySelector('.message-time').textContent;
+
+          // Check if we need a new page
+          if (yPos > pageHeight - 40) {
+            doc.addPage();
+            yPos = margin;
+          }
+
+          // Add role and time
+          doc.setFontSize(10);
+          doc.setFont(undefined, 'bold');
+          doc.setTextColor(102, 126, 234);
+          doc.text(`${role} (${time})`, margin, yPos);
+          yPos += 6;
+
+          // Add message content
+          doc.setFont(undefined, 'normal');
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(9);
+
+          // Split long text into multiple lines
+          const lines = doc.splitTextToSize(content, maxWidth);
+          lines.forEach(line => {
+            // Check if we need a new page
+            if (yPos > pageHeight - 20) {
+              doc.addPage();
+              yPos = margin;
+            }
+            doc.text(line, margin, yPos);
+            yPos += 5;
+          });
+
+          yPos += 8; // Space between messages
+
+          // Add separator for readability
+          if (index < messageElements.length - 1) {
+            doc.setDrawColor(230, 230, 230);
+            doc.line(margin, yPos - 4, pageWidth - margin, yPos - 4);
+          }
+        });
+
+        // Save PDF
+        const filename = `chat-${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(filename);
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        showError('Failed to generate PDF. Please try again.');
+      }
     }
 
     // Check chat status on load
@@ -1015,9 +1094,17 @@
         const data = await response.json();
 
         if (data.success && data.model) {
-          document.getElementById('statusText').textContent = `Model: ${data.model}`;
+          const modelName = data.model;
+          document.getElementById('statusText').textContent = `Model: ${modelName}`;
+
+          // Update side panel model display
+          document.getElementById('currentModelDisplay').textContent = modelName;
+          const backendUrl = data.backend_url || 'Unknown backend';
+          document.getElementById('modelBackendDisplay').textContent = `Backend: ${backendUrl}`;
         } else {
           document.getElementById('statusText').textContent = 'No model selected - Go to Advanced Settings';
+          document.getElementById('currentModelDisplay').textContent = 'No model selected';
+          document.getElementById('modelBackendDisplay').textContent = 'Select a model in Advanced Settings';
         }
       } catch (error) {
         console.error('Error checking status:', error);
@@ -1168,8 +1255,37 @@
         fullMessage = `Context:\n${settings.rag_context}\n\nUser Query: ${message}`;
       }
 
-      // Add user message to UI
-      addMessage('user', message, attachedFiles);
+      // Read attached files
+      const fileContents = [];
+      for (const file of attachedFiles) {
+        try {
+          const content = await readFileContent(file);
+          fileContents.push({
+            name: file.name,
+            type: file.type,
+            content: content
+          });
+        } catch (error) {
+          console.error('Error reading file:', file.name, error);
+        }
+      }
+
+      // Add file contents to message
+      if (fileContents.length > 0) {
+        let fileText = '\n\n[Attached Files]:\n';
+        for (const file of fileContents) {
+          if (file.type.startsWith('image/')) {
+            fileText += `\n[Image: ${file.name}]\nData: ${file.content}\n`;
+          } else {
+            fileText += `\n[File: ${file.name}]\n${file.content}\n`;
+          }
+        }
+        fullMessage += fileText;
+      }
+
+      // Add user message to UI (copy attachedFiles array before clearing)
+      const uiFiles = [...attachedFiles];
+      addMessage('user', message, uiFiles);
       input.value = '';
 
       // Clear attachments
@@ -1216,6 +1332,33 @@
         document.getElementById('sendBtn').disabled = false;
         document.getElementById('loadingIndicator').classList.remove('active');
       }
+    }
+
+    // Read file content
+    async function readFileContent(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          if (file.type.startsWith('image/')) {
+            // For images, send as base64 data URL
+            resolve(e.target.result);
+          } else {
+            // For text files, send as text
+            resolve(e.target.result);
+          }
+        };
+
+        reader.onerror = (e) => {
+          reject(new Error('Failed to read file'));
+        };
+
+        if (file.type.startsWith('image/')) {
+          reader.readAsDataURL(file);
+        } else {
+          reader.readAsText(file);
+        }
+      });
     }
 
     // Add message to chat
