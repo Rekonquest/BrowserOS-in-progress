@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrowserOS Log Viewer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', 'Monaco', monospace;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .log-header {
+      background: #252526;
+      border-bottom: 1px solid #3e3e42;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .log-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #cccccc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .log-title-icon {
+      width: 20px;
+      height: 20px;
+      color: #4ec9b0;
+    }
+
+    .log-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .log-search {
+      padding: 6px 12px;
+      background: #3c3c3c;
+      border: 1px solid #3e3e42;
+      border-radius: 4px;
+      color: #cccccc;
+      font-size: 12px;
+      width: 200px;
+    }
+
+    .log-search:focus {
+      outline: none;
+      border-color: #007acc;
+    }
+
+    .log-filter-group {
+      display: flex;
+      gap: 4px;
+    }
+
+    .log-filter-btn {
+      padding: 6px 12px;
+      background: #3c3c3c;
+      border: 1px solid #3e3e42;
+      border-radius: 4px;
+      color: #cccccc;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .log-filter-btn:hover {
+      background: #4c4c4c;
+    }
+
+    .log-filter-btn.active {
+      background: #007acc;
+      border-color: #007acc;
+      color: white;
+    }
+
+    .log-filter-badge {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 1px 5px;
+      border-radius: 10px;
+      font-size: 10px;
+    }
+
+    .log-button {
+      padding: 6px 12px;
+      background: #0e639c;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .log-button:hover {
+      background: #1177bb;
+    }
+
+    .log-button.danger {
+      background: #c5292a;
+    }
+
+    .log-button.danger:hover {
+      background: #e03434;
+    }
+
+    .log-button svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Stats Bar */
+    .log-stats {
+      background: #252526;
+      border-bottom: 1px solid #3e3e42;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #858585;
+      flex-shrink: 0;
+    }
+
+    .log-stats-left {
+      display: flex;
+      gap: 16px;
+    }
+
+    .log-stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .log-stat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .log-stat-dot.error { background: #f48771; }
+    .log-stat-dot.warning { background: #dcdcaa; }
+    .log-stat-dot.info { background: #4fc1ff; }
+    .log-stat-dot.success { background: #4ec9b0; }
+    .log-stat-dot.debug { background: #b5cea8; }
+
+    /* Log Container */
+    .log-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+      background: #1e1e1e;
+      scrollbar-width: thin;
+      scrollbar-color: #424242 #1e1e1e;
+    }
+
+    .log-container::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .log-container::-webkit-scrollbar-track {
+      background: #1e1e1e;
+    }
+
+    .log-container::-webkit-scrollbar-thumb {
+      background: #424242;
+      border-radius: 5px;
+    }
+
+    .log-container::-webkit-scrollbar-thumb:hover {
+      background: #4e4e4e;
+    }
+
+    /* Log Entry */
+    .log-entry {
+      padding: 6px 16px;
+      border-left: 3px solid transparent;
+      display: flex;
+      gap: 12px;
+      font-size: 13px;
+      line-height: 1.6;
+      transition: background 0.1s ease;
+    }
+
+    .log-entry:hover {
+      background: #2a2d2e;
+    }
+
+    .log-entry.error {
+      border-left-color: #f48771;
+      background: rgba(244, 135, 113, 0.05);
+    }
+
+    .log-entry.warning {
+      border-left-color: #dcdcaa;
+      background: rgba(220, 220, 170, 0.05);
+    }
+
+    .log-entry.info {
+      border-left-color: #4fc1ff;
+    }
+
+    .log-entry.success {
+      border-left-color: #4ec9b0;
+      background: rgba(78, 201, 176, 0.05);
+    }
+
+    .log-entry.debug {
+      border-left-color: #b5cea8;
+      opacity: 0.7;
+    }
+
+    .log-entry.hidden {
+      display: none;
+    }
+
+    .log-time {
+      color: #858585;
+      flex-shrink: 0;
+      width: 90px;
+      font-size: 11px;
+    }
+
+    .log-level {
+      flex-shrink: 0;
+      width: 60px;
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .log-level.error { color: #f48771; }
+    .log-level.warning { color: #dcdcaa; }
+    .log-level.info { color: #4fc1ff; }
+    .log-level.success { color: #4ec9b0; }
+    .log-level.debug { color: #b5cea8; }
+
+    .log-message {
+      flex: 1;
+      color: #d4d4d4;
+      word-break: break-word;
+    }
+
+    .log-message .log-key {
+      color: #9cdcfe;
+    }
+
+    .log-message .log-value {
+      color: #ce9178;
+    }
+
+    .log-message .log-number {
+      color: #b5cea8;
+    }
+
+    /* Empty State */
+    .log-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #858585;
+      gap: 12px;
+    }
+
+    .log-empty-icon {
+      width: 48px;
+      height: 48px;
+      opacity: 0.5;
+    }
+
+    .log-empty-text {
+      font-size: 14px;
+    }
+
+    /* Footer */
+    .log-footer {
+      background: #252526;
+      border-top: 1px solid #3e3e42;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #858585;
+      flex-shrink: 0;
+    }
+
+    .log-footer-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .log-footer-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .log-auto-scroll-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .log-checkbox {
+      width: 14px;
+      height: 14px;
+      border: 1px solid #3e3e42;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #3c3c3c;
+    }
+
+    .log-checkbox.checked {
+      background: #007acc;
+      border-color: #007acc;
+    }
+
+    .log-checkbox svg {
+      width: 10px;
+      height: 10px;
+      color: white;
+    }
+
+    .log-size-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .log-size-bar {
+      width: 100px;
+      height: 4px;
+      background: #3c3c3c;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .log-size-fill {
+      height: 100%;
+      background: #007acc;
+      transition: width 0.3s ease, background 0.3s ease;
+    }
+
+    .log-size-fill.warning {
+      background: #dcdcaa;
+    }
+
+    .log-size-fill.danger {
+      background: #f48771;
+    }
+
+    /* Animations */
+    @keyframes slideIn {
+      from {
+        transform: translateX(-10px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .log-entry {
+      animation: slideIn 0.2s ease;
+    }
+
+    /* Toast Notifications */
+    .log-toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #3c3c3c;
+      color: #cccccc;
+      padding: 12px 16px;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      font-size: 13px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    }
+
+    .log-toast.active {
+      display: flex;
+    }
+
+    .log-toast.success {
+      background: #4ec9b0;
+      color: #1e1e1e;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="log-header">
+    <div class="log-title">
+      <svg class="log-title-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      <span>BrowserOS Logs</span>
+    </div>
+
+    <div class="log-controls">
+      <input type="text" class="log-search" id="logSearch" placeholder="Search logs...">
+
+      <div class="log-filter-group">
+        <button class="log-filter-btn active" id="filterError">
+          ERROR <span class="log-filter-badge" id="errorCount">0</span>
+        </button>
+        <button class="log-filter-btn active" id="filterWarning">
+          WARN <span class="log-filter-badge" id="warningCount">0</span>
+        </button>
+        <button class="log-filter-btn active" id="filterInfo">
+          INFO <span class="log-filter-badge" id="infoCount">0</span>
+        </button>
+        <button class="log-filter-btn active" id="filterSuccess">
+          SUCCESS <span class="log-filter-badge" id="successCount">0</span>
+        </button>
+        <button class="log-filter-btn" id="filterDebug">
+          DEBUG <span class="log-filter-badge" id="debugCount">0</span>
+        </button>
+      </div>
+
+      <button class="log-button" id="exportButton">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        Export
+      </button>
+
+      <button class="log-button danger" id="clearButton">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+        Clear
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Bar -->
+  <div class="log-stats">
+    <div class="log-stats-left">
+      <div class="log-stat">
+        <span class="log-stat-dot error"></span>
+        <span id="statsError">0 errors</span>
+      </div>
+      <div class="log-stat">
+        <span class="log-stat-dot warning"></span>
+        <span id="statsWarning">0 warnings</span>
+      </div>
+      <div class="log-stat">
+        <span class="log-stat-dot success"></span>
+        <span id="statsSuccess">0 success</span>
+      </div>
+      <div class="log-stat">
+        <span>Total: <strong id="statsTotal">0</strong> entries</span>
+      </div>
+    </div>
+    <div class="log-stats-right">
+      <span id="statsTime">Session started</span>
+    </div>
+  </div>
+
+  <!-- Log Container -->
+  <div class="log-container" id="logContainer">
+    <div class="log-empty">
+      <svg class="log-empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      <div class="log-empty-text">No logs yet. Logs will appear here in real-time.</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="log-footer">
+    <div class="log-footer-left">
+      <div class="log-auto-scroll-toggle" id="autoScrollToggle">
+        <div class="log-checkbox checked" id="autoScrollCheckbox">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <span>Auto-scroll</span>
+      </div>
+    </div>
+    <div class="log-footer-right">
+      <div class="log-size-indicator">
+        <span id="sizeText">0 KB</span>
+        <div class="log-size-bar">
+          <div class="log-size-fill" id="sizeFill" style="width: 0%"></div>
+        </div>
+        <span id="sizeLimit">/ 10 MB</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="log-toast" id="logToast">
+    <span id="toastMessage"></span>
+  </div>
+
+  <script>
+    // Configuration
+    const CONFIG = {
+      maxLogSize: 10 * 1024 * 1024, // 10 MB
+      maxLogEntries: 10000,
+      autoCleanupThreshold: 0.9, // Clean up at 90% capacity
+      autoCleanupAmount: 0.3, // Remove 30% of old logs
+    };
+
+    // State
+    const state = {
+      logs: [],
+      filteredLogs: [],
+      filters: {
+        error: true,
+        warning: true,
+        info: true,
+        success: true,
+        debug: false,
+      },
+      searchQuery: '',
+      autoScroll: true,
+      currentSize: 0,
+      stats: {
+        error: 0,
+        warning: 0,
+        info: 0,
+        success: 0,
+        debug: 0,
+        total: 0,
+      },
+      sessionStart: Date.now(),
+    };
+
+    // DOM elements
+    const logContainer = document.getElementById('logContainer');
+    const logSearch = document.getElementById('logSearch');
+    const filterError = document.getElementById('filterError');
+    const filterWarning = document.getElementById('filterWarning');
+    const filterInfo = document.getElementById('filterInfo');
+    const filterSuccess = document.getElementById('filterSuccess');
+    const filterDebug = document.getElementById('filterDebug');
+    const errorCount = document.getElementById('errorCount');
+    const warningCount = document.getElementById('warningCount');
+    const infoCount = document.getElementById('infoCount');
+    const successCount = document.getElementById('successCount');
+    const debugCount = document.getElementById('debugCount');
+    const exportButton = document.getElementById('exportButton');
+    const clearButton = document.getElementById('clearButton');
+    const autoScrollToggle = document.getElementById('autoScrollToggle');
+    const autoScrollCheckbox = document.getElementById('autoScrollCheckbox');
+    const statsError = document.getElementById('statsError');
+    const statsWarning = document.getElementById('statsWarning');
+    const statsSuccess = document.getElementById('statsSuccess');
+    const statsTotal = document.getElementById('statsTotal');
+    const statsTime = document.getElementById('statsTime');
+    const sizeText = document.getElementById('sizeText');
+    const sizeFill = document.getElementById('sizeFill');
+    const sizeLimit = document.getElementById('sizeLimit');
+    const logToast = document.getElementById('logToast');
+    const toastMessage = document.getElementById('toastMessage');
+
+    // Utility functions
+    function formatTime(timestamp) {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
+    }
+
+    function formatSize(bytes) {
+      if (bytes === 0) return '0 KB';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    function estimateLogSize(log) {
+      return JSON.stringify(log).length;
+    }
+
+    function showToast(message, type = 'default') {
+      toastMessage.textContent = message;
+      logToast.className = 'log-toast active' + (type ? ' ' + type : '');
+      setTimeout(() => {
+        logToast.classList.remove('active');
+      }, 3000);
+    }
+
+    // Add log entry
+    function addLog(level, message, metadata = {}) {
+      const log = {
+        id: Date.now() + Math.random(),
+        timestamp: Date.now(),
+        level,
+        message,
+        metadata,
+      };
+
+      // Check size and auto-cleanup if needed
+      const logSize = estimateLogSize(log);
+      state.currentSize += logSize;
+
+      if (state.currentSize >= CONFIG.maxLogSize * CONFIG.autoCleanupThreshold) {
+        performAutoCleanup();
+      }
+
+      // Add to logs array
+      state.logs.push(log);
+      state.stats[level]++;
+      state.stats.total++;
+
+      // Trim if too many entries
+      if (state.logs.length > CONFIG.maxLogEntries) {
+        const removed = state.logs.shift();
+        state.currentSize -= estimateLogSize(removed);
+        state.stats[removed.level]--;
+        state.stats.total--;
+      }
+
+      // Update UI
+      updateStats();
+      updateSize();
+      renderLog(log);
+      applyFilters();
+
+      // Notify
+      notifyLogAdded(log);
+
+      return log;
+    }
+
+    // Auto-cleanup old logs
+    function performAutoCleanup() {
+      const removeCount = Math.floor(state.logs.length * CONFIG.autoCleanupAmount);
+      const removed = state.logs.splice(0, removeCount);
+
+      removed.forEach(log => {
+        state.currentSize -= estimateLogSize(log);
+        state.stats[log.level]--;
+        state.stats.total--;
+      });
+
+      updateStats();
+      updateSize();
+      renderAllLogs();
+      showToast(`Auto-cleanup: Removed ${removeCount} old log entries`, 'success');
+      console.log(`[BrowserOS Logs] Auto-cleanup removed ${removeCount} entries`);
+    }
+
+    // Render single log
+    function renderLog(log) {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${log.level}`;
+      entry.dataset.logId = log.id;
+      entry.dataset.level = log.level;
+
+      entry.innerHTML = `
+        <div class="log-time">${formatTime(log.timestamp)}</div>
+        <div class="log-level ${log.level}">${log.level}</div>
+        <div class="log-message">${highlightMessage(log.message)}</div>
+      `;
+
+      // Remove empty state if present
+      const emptyState = logContainer.querySelector('.log-empty');
+      if (emptyState) {
+        emptyState.remove();
+      }
+
+      logContainer.appendChild(entry);
+
+      // Auto-scroll if enabled
+      if (state.autoScroll) {
+        logContainer.scrollTop = logContainer.scrollHeight;
+      }
+    }
+
+    // Highlight message (syntax highlighting for JSON-like content)
+    function highlightMessage(message) {
+      // Simple syntax highlighting for key-value pairs
+      return message
+        .replace(/("[\w-]+")\s*:/g, '<span class="log-key">$1</span>:')
+        .replace(/:\s*"([^"]*)"/g, ': <span class="log-value">"$1"</span>')
+        .replace(/:\s*(\d+)/g, ': <span class="log-number">$1</span>');
+    }
+
+    // Render all logs
+    function renderAllLogs() {
+      logContainer.innerHTML = '';
+
+      if (state.logs.length === 0) {
+        logContainer.innerHTML = `
+          <div class="log-empty">
+            <svg class="log-empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <div class="log-empty-text">No logs yet. Logs will appear here in real-time.</div>
+          </div>
+        `;
+        return;
+      }
+
+      state.logs.forEach(log => renderLog(log));
+      applyFilters();
+    }
+
+    // Apply filters
+    function applyFilters() {
+      const entries = logContainer.querySelectorAll('.log-entry');
+
+      entries.forEach(entry => {
+        const level = entry.dataset.level;
+        const text = entry.textContent.toLowerCase();
+
+        const matchesFilter = state.filters[level];
+        const matchesSearch = !state.searchQuery || text.includes(state.searchQuery.toLowerCase());
+
+        if (matchesFilter && matchesSearch) {
+          entry.classList.remove('hidden');
+        } else {
+          entry.classList.add('hidden');
+        }
+      });
+    }
+
+    // Update stats
+    function updateStats() {
+      errorCount.textContent = state.stats.error;
+      warningCount.textContent = state.stats.warning;
+      infoCount.textContent = state.stats.info;
+      successCount.textContent = state.stats.success;
+      debugCount.textContent = state.stats.debug;
+
+      statsError.textContent = `${state.stats.error} error${state.stats.error !== 1 ? 's' : ''}`;
+      statsWarning.textContent = `${state.stats.warning} warning${state.stats.warning !== 1 ? 's' : ''}`;
+      statsSuccess.textContent = `${state.stats.success} success`;
+      statsTotal.textContent = state.stats.total;
+
+      // Update session time
+      const elapsed = Date.now() - state.sessionStart;
+      const minutes = Math.floor(elapsed / 60000);
+      const seconds = Math.floor((elapsed % 60000) / 1000);
+      statsTime.textContent = `Session: ${minutes}m ${seconds}s`;
+    }
+
+    // Update size indicator
+    function updateSize() {
+      const percentage = (state.currentSize / CONFIG.maxLogSize) * 100;
+      sizeText.textContent = formatSize(state.currentSize);
+      sizeLimit.textContent = `/ ${formatSize(CONFIG.maxLogSize)}`;
+      sizeFill.style.width = `${Math.min(percentage, 100)}%`;
+
+      if (percentage >= 90) {
+        sizeFill.classList.add('danger');
+        sizeFill.classList.remove('warning');
+      } else if (percentage >= 70) {
+        sizeFill.classList.add('warning');
+        sizeFill.classList.remove('danger');
+      } else {
+        sizeFill.classList.remove('warning', 'danger');
+      }
+    }
+
+    // Clear logs
+    function clearLogs() {
+      if (state.logs.length === 0) return;
+
+      if (confirm('Are you sure you want to clear all logs?')) {
+        state.logs = [];
+        state.currentSize = 0;
+        state.stats = { error: 0, warning: 0, info: 0, success: 0, debug: 0, total: 0 };
+        renderAllLogs();
+        updateStats();
+        updateSize();
+        showToast('All logs cleared', 'success');
+      }
+    }
+
+    // Export logs
+    function exportLogs() {
+      if (state.logs.length === 0) {
+        showToast('No logs to export');
+        return;
+      }
+
+      const exportData = state.logs.map(log => ({
+        timestamp: new Date(log.timestamp).toISOString(),
+        level: log.level,
+        message: log.message,
+        ...log.metadata,
+      }));
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `browseros-logs-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      showToast('Logs exported successfully', 'success');
+    }
+
+    // Notify parent about log additions
+    function notifyLogAdded(log) {
+      if (window.parent !== window) {
+        window.parent.postMessage({
+          type: 'browseros:log-added',
+          log,
+        }, '*');
+      }
+
+      window.dispatchEvent(new CustomEvent('logAdded', { detail: log }));
+    }
+
+    // Event listeners
+    logSearch.addEventListener('input', (e) => {
+      state.searchQuery = e.target.value;
+      applyFilters();
+    });
+
+    filterError.addEventListener('click', () => {
+      state.filters.error = !state.filters.error;
+      filterError.classList.toggle('active');
+      applyFilters();
+    });
+
+    filterWarning.addEventListener('click', () => {
+      state.filters.warning = !state.filters.warning;
+      filterWarning.classList.toggle('active');
+      applyFilters();
+    });
+
+    filterInfo.addEventListener('click', () => {
+      state.filters.info = !state.filters.info;
+      filterInfo.classList.toggle('active');
+      applyFilters();
+    });
+
+    filterSuccess.addEventListener('click', () => {
+      state.filters.success = !state.filters.success;
+      filterSuccess.classList.toggle('active');
+      applyFilters();
+    });
+
+    filterDebug.addEventListener('click', () => {
+      state.filters.debug = !state.filters.debug;
+      filterDebug.classList.toggle('active');
+      applyFilters();
+    });
+
+    clearButton.addEventListener('click', clearLogs);
+    exportButton.addEventListener('click', exportLogs);
+
+    autoScrollToggle.addEventListener('click', () => {
+      state.autoScroll = !state.autoScroll;
+      autoScrollCheckbox.classList.toggle('checked');
+    });
+
+    // Update session time every second
+    setInterval(updateStats, 1000);
+
+    // Public API
+    window.BrowserOSLogs = {
+      addLog,
+      clearLogs,
+      exportLogs,
+      error: (message, metadata) => addLog('error', message, metadata),
+      warning: (message, metadata) => addLog('warning', message, metadata),
+      info: (message, metadata) => addLog('info', message, metadata),
+      success: (message, metadata) => addLog('success', message, metadata),
+      debug: (message, metadata) => addLog('debug', message, metadata),
+      getLogs: () => state.logs,
+      getStats: () => state.stats,
+      setMaxSize: (size) => { CONFIG.maxLogSize = size; updateSize(); },
+      setMaxEntries: (count) => { CONFIG.maxLogEntries = count; },
+    };
+
+    // Intercept console methods
+    const originalConsole = {
+      log: console.log,
+      error: console.error,
+      warn: console.warn,
+      info: console.info,
+      debug: console.debug,
+    };
+
+    console.log = (...args) => {
+      originalConsole.log(...args);
+      addLog('info', args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
+    };
+
+    console.error = (...args) => {
+      originalConsole.error(...args);
+      addLog('error', args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
+    };
+
+    console.warn = (...args) => {
+      originalConsole.warn(...args);
+      addLog('warning', args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
+    };
+
+    console.info = (...args) => {
+      originalConsole.info(...args);
+      addLog('info', args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
+    };
+
+    console.debug = (...args) => {
+      originalConsole.debug(...args);
+      addLog('debug', args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
+    };
+
+    // Add some initial logs for demo
+    console.log('[BrowserOS Logs] Log viewer initialized');
+    console.info('[BrowserOS Logs] Ready to capture logs');
+
+    // Notify ready
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'browseros:logs-ready' }, '*');
+    }
+  </script>
+</body>
+</html>
