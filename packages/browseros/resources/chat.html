@@ -750,8 +750,20 @@
               <span class="setting-value" id="tokensValue">2000</span>
             </div>
             <input type="range" class="setting-slider" id="maxTokens"
-                   min="100" max="4000" step="100" value="2000"
+                   min="100" max="128000" step="500" value="2000"
                    oninput="updateSettingValue('maxTokens', 'tokensValue')">
+            <div style="font-size: 11px; color: #718096; margin-top: 4px;">
+              Range: 100 - 128,000 tokens
+            </div>
+            <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+              <button onclick="setTokenPreset(2000)" style="padding: 4px 10px; font-size: 11px; border: 1px solid #e2e8f0; background: white; border-radius: 4px; cursor: pointer;">2k</button>
+              <button onclick="setTokenPreset(4000)" style="padding: 4px 10px; font-size: 11px; border: 1px solid #e2e8f0; background: white; border-radius: 4px; cursor: pointer;">4k</button>
+              <button onclick="setTokenPreset(8000)" style="padding: 4px 10px; font-size: 11px; border: 1px solid #e2e8f0; background: white; border-radius: 4px; cursor: pointer;">8k</button>
+              <button onclick="setTokenPreset(16000)" style="padding: 4px 10px; font-size: 11px; border: 1px solid #e2e8f0; background: white; border-radius: 4px; cursor: pointer;">16k</button>
+              <button onclick="setTokenPreset(32000)" style="padding: 4px 10px; font-size: 11px; border: 1px solid #e2e8f0; background: white; border-radius: 4px; cursor: pointer;">32k</button>
+              <button onclick="setTokenPreset(64000)" style="padding: 4px 10px; font-size: 11px; border: 1px solid #e2e8f0; background: white; border-radius: 4px; cursor: pointer;">64k</button>
+              <button onclick="setTokenPreset(128000)" style="padding: 4px 10px; font-size: 11px; border: 1px solid #e2e8f0; background: white; border-radius: 4px; cursor: pointer;">128k</button>
+            </div>
           </div>
 
           <div class="setting-group">
@@ -870,6 +882,14 @@
       const slider = document.getElementById(settingId);
       const valueDisplay = document.getElementById(valueId);
       valueDisplay.textContent = slider.value;
+    }
+
+    // Set token preset
+    function setTokenPreset(value) {
+      const slider = document.getElementById('maxTokens');
+      const valueDisplay = document.getElementById('tokensValue');
+      slider.value = value;
+      valueDisplay.textContent = value;
     }
 
     // Update system prompt preview
