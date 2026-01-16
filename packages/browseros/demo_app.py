@@ -728,6 +728,7 @@ def api_chat():
     try:
         data = request.json
         user_message = data.get('message')
+        is_multimodal = data.get('is_multimodal', False)
         system_prompt = data.get('system_prompt') or chat_state.get('system_prompt')
 
         if not user_message:
@@ -745,6 +746,8 @@ def api_chat():
         messages.extend(chat_state['chat_history'])
 
         # Add current message
+        # If multimodal (images), message is already in array format [{type: 'text', text: '...'}, {type: 'image_url', ...}]
+        # If text-only, message is a string
         messages.append({'role': 'user', 'content': user_message})
 
         # Call LM Studio API
@@ -756,6 +759,8 @@ def api_chat():
                     'temperature': data.get('temperature', 0.7),
                     'max_tokens': data.get('max_tokens', 2000),
                 }
+
+                logger.info(f"Sending {'multimodal' if is_multimodal else 'text'} message to LM Studio")
 
                 async with session.post(
                     f"{chat_state['backend_url']}/chat/completions",
@@ -784,7 +789,18 @@ def api_chat():
         assistant_message = result['choices'][0]['message']['content']
 
         # Update chat history
-        chat_state['chat_history'].append({'role': 'user', 'content': user_message})
+        # For multimodal messages, store simplified text version (not full image data)
+        if is_multimodal:
+            # Extract just the text content
+            if isinstance(user_message, list):
+                text_parts = [item.get('text', '') for item in user_message if item.get('type') == 'text']
+                history_content = ' '.join(text_parts) + ' [with images]'
+            else:
+                history_content = user_message
+            chat_state['chat_history'].append({'role': 'user', 'content': history_content})
+        else:
+            chat_state['chat_history'].append({'role': 'user', 'content': user_message})
+
         chat_state['chat_history'].append({'role': 'assistant', 'content': assistant_message})
 
         # Keep only last 10 messages (5 exchanges) to prevent context overflow

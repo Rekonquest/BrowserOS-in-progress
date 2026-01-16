@@ -690,7 +690,7 @@
           </button>
           <input type="file" id="fileInput" multiple accept="image/*,.pdf,.txt,.doc,.docx" onchange="handleFileSelect(event)">
           <div style="flex: 1; text-align: right; font-size: 11px; color: #718096; padding: 0 8px;">
-            💡 Images auto-compressed to save tokens
+            💡 Images sent via vision API (efficient, not as text)
           </div>
         </div>
 
@@ -1360,34 +1360,45 @@
 
       // Read attached files
       const fileContents = [];
+      const imageUrls = [];
+
       for (const file of attachedFiles) {
         try {
-          const content = await readFileContent(file);
-          fileContents.push({
-            name: file.name,
-            type: file.type,
-            content: content
-          });
+          if (file.type.startsWith('image/')) {
+            // For images, compress and store for vision API
+            const compressedBase64 = await readFileContent(file);
+            imageUrls.push({
+              type: 'image_url',
+              image_url: { url: compressedBase64 }
+            });
+          } else {
+            // For text files, read content
+            const content = await readFileContent(file);
+            fileContents.push({
+              name: file.name,
+              type: file.type,
+              content: content
+            });
+          }
         } catch (error) {
           console.error('Error reading file:', file.name, error);
         }
       }
 
-      // Add file contents to message
+      // Add text file contents to message (not images)
       if (fileContents.length > 0) {
         let fileText = '\n\n[Attached Files]:\n';
         for (const file of fileContents) {
-          if (file.type.startsWith('image/')) {
-            fileText += `\n[Image: ${file.name}]\nData: ${file.content}\n`;
-          } else {
-            fileText += `\n[File: ${file.name}]\n${file.content}\n`;
-          }
+          fileText += `\n[File: ${file.name}]\n${file.content}\n`;
         }
         fullMessage += fileText;
       }
 
       // Add user message to history and UI
-      messageHistory.push({ role: 'user', content: fullMessage });
+      // Only store text in history (not image data - that's sent separately)
+      const historyMessage = message + (fileContents.length > 0 ? ' [with ' + fileContents.length + ' files]' : '') + (imageUrls.length > 0 ? ' [with ' + imageUrls.length + ' images]' : '');
+      messageHistory.push({ role: 'user', content: historyMessage });
+
       const uiFiles = [...attachedFiles];
       addMessage('user', message, uiFiles);
       input.value = '';
@@ -1414,11 +1425,25 @@
           console.warn('⚠️ Approaching context limit! Consider clearing chat or reducing KV cache size.');
         }
 
+        // Build message content (text + images as separate blocks)
+        let messageContent;
+        if (imageUrls.length > 0) {
+          // Multimodal message: text + images
+          messageContent = [
+            { type: 'text', text: fullMessage || 'What is in these images?' }
+          ];
+          messageContent.push(...imageUrls);
+        } else {
+          // Text-only message
+          messageContent = fullMessage || '[File attached]';
+        }
+
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
-            message: fullMessage || '[Image/File attached]',
+            message: messageContent,
+            is_multimodal: imageUrls.length > 0,
             temperature: settings.temperature,
             max_tokens: settings.max_tokens,
             top_p: settings.top_p,
