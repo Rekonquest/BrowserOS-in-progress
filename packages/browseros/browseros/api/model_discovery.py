@@ -206,15 +206,18 @@ class ModelDiscovery:
             if backend_type == BackendType.OLLAMA:
                 backend.models = await self.discover_ollama(url)
                 backend.is_available = len(backend.models) > 0
+                print(f"[Model Discovery] {name}: {'✓' if backend.is_available else '✗'} ({len(backend.models)} models)")
 
             elif backend_type in [BackendType.LM_STUDIO, BackendType.OPENAI_COMPATIBLE,
                                    BackendType.VLLM, BackendType.TEXT_GENERATION_WEBUI]:
                 backend.models = await self.discover_openai_compatible(url)
                 backend.is_available = len(backend.models) > 0
+                print(f"[Model Discovery] {name}: {'✓' if backend.is_available else '✗'} ({len(backend.models)} models)")
 
         except Exception as e:
             backend.error = str(e)
             backend.is_available = False
+            print(f"[Model Discovery] {name}: ✗ Error: {e}")
 
         return backend
 

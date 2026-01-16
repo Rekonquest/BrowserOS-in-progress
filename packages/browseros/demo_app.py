@@ -688,17 +688,21 @@ def api_select_model():
     try:
         data = request.json
         model_id = data.get('model_id')
-        backend_url = data.get('backend_url')
+        backend_url = data.get('backend_url', 'http://localhost:1234/v1')
 
         if not model_id:
             return jsonify({'success': False, 'error': 'model_id required'})
 
+        # Ensure backend_url doesn't have double slashes
+        backend_url = backend_url.rstrip('/')
+
         # Store in session state
         chat_state['model'] = model_id
-        chat_state['backend_url'] = backend_url or 'http://localhost:1234/v1'
+        chat_state['backend_url'] = backend_url
         chat_state['chat_history'] = []  # Clear history when switching models
 
-        logger.info(f"Selected model: {model_id} at {chat_state['backend_url']}")
+        logger.info(f"✓ Selected model: {model_id}")
+        logger.info(f"✓ Backend URL: {backend_url}")
 
         return jsonify({
             'success': True,

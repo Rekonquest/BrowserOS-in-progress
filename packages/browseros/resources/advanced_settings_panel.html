@@ -474,9 +474,9 @@
           <span class="label-badge">REQUIRED</span>
         </label>
         <input type="url" class="form-input" id="backendUrl"
-               placeholder="http://localhost:11434"
-               value="http://localhost:11434">
-        <div class="form-hint">Enter your local backend URL (e.g., Ollama at localhost:11434, LM Studio at localhost:1234)</div>
+               placeholder="http://localhost:1234/v1"
+               value="http://localhost:1234/v1">
+        <div class="form-hint">Enter your local backend URL (e.g., LM Studio at localhost:1234/v1, Ollama at localhost:11434)</div>
       </div>
 
       <div class="button-group">
@@ -946,7 +946,15 @@
       try {
         // Get the backend URL
         const urlInput = document.getElementById('backendUrl');
-        const backendUrl = urlInput ? urlInput.value : 'http://localhost:1234/v1';
+        let backendUrl = urlInput ? urlInput.value.trim() : 'http://localhost:1234/v1';
+
+        // Ensure URL ends with /v1 for LM Studio
+        if (backendUrl.includes(':1234') && !backendUrl.endsWith('/v1')) {
+          backendUrl = backendUrl + '/v1';
+        }
+
+        // Remove trailing slash if present before /v1
+        backendUrl = backendUrl.replace(/\/+$/, '');
 
         // Call API to select model
         const response = await fetch('/api/select-model', {
@@ -962,7 +970,7 @@
 
         if (data.success) {
           // Show success message
-          alert(`✓ Model selected: ${modelName}\n\nRedirecting to chat...`);
+          alert(`✓ Model selected: ${modelName}\n\nBackend: ${backendUrl}\n\nRedirecting to chat...`);
 
           // Redirect to chat interface
           window.location.href = '/chat';
