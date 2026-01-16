@@ -130,6 +130,26 @@
       border: 1px solid #e2e8f0;
     }
 
+    .message-image {
+      max-width: 300px;
+      border-radius: 8px;
+      margin-top: 8px;
+      cursor: pointer;
+    }
+
+    .message-file {
+      background: rgba(0,0,0,0.1);
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-top: 8px;
+      font-size: 13px;
+      display: inline-block;
+    }
+
+    .message.user .message-file {
+      background: rgba(255,255,255,0.2);
+    }
+
     .message-time {
       font-size: 11px;
       color: #a0aec0;
@@ -141,6 +161,87 @@
       border-radius: 10px;
       padding: 16px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .attachments-preview {
+      display: none;
+      padding: 12px;
+      border-bottom: 1px solid #e2e8f0;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .attachments-preview.has-files {
+      display: flex;
+    }
+
+    .attachment-item {
+      position: relative;
+      display: inline-block;
+      padding: 8px 12px;
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .attachment-image {
+      max-width: 100px;
+      max-height: 100px;
+      border-radius: 4px;
+    }
+
+    .attachment-remove {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 20px;
+      height: 20px;
+      background: #e53e3e;
+      color: white;
+      border: 2px solid white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .input-toolbar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .toolbar-btn {
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .toolbar-btn:hover {
+      background: #e2e8f0;
+    }
+
+    .toolbar-btn.recording {
+      background: #e53e3e;
+      color: white;
+      border-color: #e53e3e;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
     }
 
     .input-wrapper {
@@ -236,6 +337,10 @@
       display: block;
     }
 
+    #fileInput {
+      display: none;
+    }
+
     @keyframes typing {
       0%, 100% { opacity: 0.3; }
       50% { opacity: 1; }
@@ -289,7 +394,8 @@
         <div class="empty-state-icon">💬</div>
         <div class="empty-state-title">Start Chatting</div>
         <div class="empty-state-text">
-          Select a model in Advanced Settings, then start a conversation!
+          Select a model in Advanced Settings, then start a conversation!<br>
+          You can upload images, documents, or use voice input.
         </div>
       </div>
     </div>
@@ -304,6 +410,21 @@
     </div>
 
     <div class="input-container">
+      <!-- Attachments Preview -->
+      <div class="attachments-preview" id="attachmentsPreview"></div>
+
+      <!-- Toolbar with File Upload and Voice -->
+      <div class="input-toolbar">
+        <button class="toolbar-btn" onclick="document.getElementById('fileInput').click()">
+          <span>📎</span> Attach File
+        </button>
+        <button class="toolbar-btn" id="voiceBtn" onclick="toggleVoiceInput()">
+          <span id="voiceIcon">🎤</span> <span id="voiceText">Voice Input</span>
+        </button>
+        <input type="file" id="fileInput" multiple accept="image/*,.pdf,.txt,.doc,.docx" onchange="handleFileSelect(event)">
+      </div>
+
+      <!-- Input Wrapper -->
       <div class="input-wrapper">
         <textarea
           id="messageInput"
@@ -320,6 +441,38 @@
 
   <script>
     let isLoading = false;
+    let attachedFiles = [];
+    let isRecording = false;
+    let recognition = null;
+    let transcript = '';
+
+    // Initialize speech recognition if available
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        const input = document.getElementById('messageInput');
+        input.value += (input.value ? ' ' : '') + transcript;
+        input.focus();
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        stopVoiceInput();
+        if (event.error !== 'no-speech') {
+          showError(`Voice input error: ${event.error}`);
+        }
+      };
+
+      recognition.onend = () => {
+        stopVoiceInput();
+      };
+    }
 
     // Check chat status on load
     async function checkStatus() {
@@ -337,6 +490,110 @@
       }
     }
 
+    // Handle file selection
+    function handleFileSelect(event) {
+      const files = Array.from(event.target.files);
+      files.forEach(file => {
+        attachedFiles.push(file);
+        addAttachmentPreview(file);
+      });
+      event.target.value = ''; // Reset input
+    }
+
+    // Add attachment preview
+    function addAttachmentPreview(file) {
+      const preview = document.getElementById('attachmentsPreview');
+      preview.classList.add('has-files');
+
+      const item = document.createElement('div');
+      item.className = 'attachment-item';
+      item.dataset.filename = file.name;
+
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          item.innerHTML = `
+            <img src="${e.target.result}" class="attachment-image" alt="${file.name}">
+            <div class="attachment-remove" onclick="removeAttachment('${file.name}')">×</div>
+          `;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        item.innerHTML = `
+          📄 ${file.name} (${formatFileSize(file.size)})
+          <div class="attachment-remove" onclick="removeAttachment('${file.name}')">×</div>
+        `;
+      }
+
+      preview.appendChild(item);
+    }
+
+    // Remove attachment
+    function removeAttachment(filename) {
+      attachedFiles = attachedFiles.filter(f => f.name !== filename);
+      const preview = document.getElementById('attachmentsPreview');
+      const item = preview.querySelector(`[data-filename="${filename}"]`);
+      if (item) item.remove();
+
+      if (attachedFiles.length === 0) {
+        preview.classList.remove('has-files');
+      }
+    }
+
+    // Format file size
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    // Toggle voice input
+    function toggleVoiceInput() {
+      if (!recognition) {
+        showError('Voice input not supported in this browser');
+        return;
+      }
+
+      if (isRecording) {
+        stopVoiceInput();
+      } else {
+        startVoiceInput();
+      }
+    }
+
+    // Start voice input
+    function startVoiceInput() {
+      isRecording = true;
+      const btn = document.getElementById('voiceBtn');
+      btn.classList.add('recording');
+      document.getElementById('voiceIcon').textContent = '⏹️';
+      document.getElementById('voiceText').textContent = 'Stop Recording';
+
+      try {
+        recognition.start();
+      } catch (error) {
+        console.error('Error starting voice input:', error);
+        stopVoiceInput();
+      }
+    }
+
+    // Stop voice input
+    function stopVoiceInput() {
+      isRecording = false;
+      const btn = document.getElementById('voiceBtn');
+      btn.classList.remove('recording');
+      document.getElementById('voiceIcon').textContent = '🎤';
+      document.getElementById('voiceText').textContent = 'Voice Input';
+
+      if (recognition) {
+        try {
+          recognition.stop();
+        } catch (error) {
+          // Ignore errors when stopping
+        }
+      }
+    }
+
     // Send message
     async function sendMessage() {
       if (isLoading) return;
@@ -344,11 +601,17 @@
       const input = document.getElementById('messageInput');
       const message = input.value.trim();
 
-      if (!message) return;
+      if (!message && attachedFiles.length === 0) return;
 
       // Add user message to UI
-      addMessage('user', message);
+      addMessage('user', message, attachedFiles);
       input.value = '';
+
+      // Clear attachments
+      const preview = document.getElementById('attachmentsPreview');
+      preview.innerHTML = '';
+      preview.classList.remove('has-files');
+      attachedFiles = [];
 
       // Show loading
       isLoading = true;
@@ -361,7 +624,7 @@
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
-            message: message,
+            message: message || '[Image/File attached]',
             temperature: 0.7,
             max_tokens: 2000
           })
@@ -389,7 +652,7 @@
     }
 
     // Add message to chat
-    function addMessage(role, content) {
+    function addMessage(role, content, files = []) {
       const messages = document.getElementById('messages');
 
       // Remove empty state if present
@@ -404,10 +667,33 @@
       const avatar = role === 'user' ? '👤' : '🤖';
       const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
 
+      let contentHTML = '';
+
+      // Add files if present
+      if (files && files.length > 0) {
+        files.forEach(file => {
+          if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const img = document.createElement('img');
+              img.src = e.target.result;
+              img.className = 'message-image';
+              img.alt = file.name;
+              messageDiv.querySelector('.message-content').prepend(img);
+            };
+            reader.readAsDataURL(file);
+          } else {
+            contentHTML += `<div class="message-file">📄 ${file.name}</div>`;
+          }
+        });
+      }
+
+      contentHTML += escapeHtml(content);
+
       messageDiv.innerHTML = `
         <div class="message-avatar">${avatar}</div>
         <div>
-          <div class="message-content">${escapeHtml(content)}</div>
+          <div class="message-content">${contentHTML}</div>
           <div class="message-time">${time}</div>
         </div>
       `;
@@ -432,7 +718,8 @@
               <div class="empty-state-icon">💬</div>
               <div class="empty-state-title">Start Chatting</div>
               <div class="empty-state-text">
-                Type a message below to start a new conversation!
+                Type a message below to start a new conversation!<br>
+                You can upload images, documents, or use voice input.
               </div>
             </div>
           `;
