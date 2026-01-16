@@ -539,7 +539,7 @@ def api_test():
 # ============================================================================
 
 @app.route('/api/discover', methods=['GET'])
-async def api_discover():
+def api_discover():
     """Discover models from backends"""
     try:
         # Check if aiohttp is available
@@ -551,39 +551,49 @@ async def api_discover():
                 'error': 'aiohttp not installed. Install with: pip install aiohttp'
             })
 
-        async with ModelDiscovery() as discovery:
-            backends = await discovery.discover_all()
+        # Run async code in a new event loop (Flask doesn't support async routes)
+        async def do_discovery():
+            async with ModelDiscovery() as discovery:
+                return await discovery.discover_all()
 
-            # Convert to serializable format
-            result = {
-                'success': True,
-                'backends': [],
-                'total_models': 0
+        # Create new event loop for this request
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            backends = loop.run_until_complete(do_discovery())
+        finally:
+            loop.close()
+
+        # Convert to serializable format
+        result = {
+            'success': True,
+            'backends': [],
+            'total_models': 0
+        }
+
+        for backend in backends:
+            backend_data = {
+                'name': backend.name,
+                'type': backend.type.value if hasattr(backend.type, 'value') else str(backend.type),
+                'url': backend.url,
+                'is_available': backend.is_available,
+                'models': []
             }
 
-            for backend in backends:
-                backend_data = {
-                    'name': backend.name,
-                    'type': backend.type.value if hasattr(backend.type, 'value') else str(backend.type),
-                    'url': backend.url,
-                    'is_available': backend.is_available,
-                    'models': []
+            for model in backend.models:
+                model_data = {
+                    'model_id': model.model_id,
+                    'name': model.name or model.model_id,
+                    'parameter_count': model.parameter_count,
+                    'quantization': model.quantization,
+                    'size': model.size
                 }
+                backend_data['models'].append(model_data)
+                result['total_models'] += 1
 
-                for model in backend.models:
-                    model_data = {
-                        'model_id': model.model_id,
-                        'name': model.name or model.model_id,
-                        'parameter_count': model.parameter_count,
-                        'quantization': model.quantization,
-                        'size': model.size
-                    }
-                    backend_data['models'].append(model_data)
-                    result['total_models'] += 1
+            result['backends'].append(backend_data)
 
-                result['backends'].append(backend_data)
-
-            return jsonify(result)
+        return jsonify(result)
 
     except Exception as e:
         logger.error(f"Error in model discovery: {e}")
@@ -598,12 +608,12 @@ def api_presets():
     try:
         presets_dir = Path(__file__).parent / 'browseros' / 'presets'
 
-        # Load system prompts
-        with open(presets_dir / 'system_prompts.json') as f:
+        # Load system prompts (with UTF-8 encoding for Windows)
+        with open(presets_dir / 'system_prompts.json', encoding='utf-8') as f:
             system_prompts_data = json.load(f)
 
-        # Load chat templates
-        with open(presets_dir / 'chat_templates.json') as f:
+        # Load chat templates (with UTF-8 encoding for Windows)
+        with open(presets_dir / 'chat_templates.json', encoding='utf-8') as f:
             chat_templates_data = json.load(f)
 
         return jsonify({
