@@ -20,21 +20,19 @@ from .logger import (  # noqa: F401
     _log_to_file,
 )
 
-
-# Platform detection functions
-def IS_WINDOWS() -> bool:
-    """Check if running on Windows"""
-    return sys.platform == "win32"
-
-
-def IS_MACOS() -> bool:
-    """Check if running on macOS"""
-    return sys.platform == "darwin"
-
-
-def IS_LINUX() -> bool:
-    """Check if running on Linux"""
-    return sys.platform.startswith("linux")
+# Import platform detection from new platform module - re-exported for backward compatibility
+from .platform import (  # noqa: F401
+    IS_WINDOWS,
+    IS_MACOS,
+    IS_LINUX,
+    get_platform,
+    get_platform_arch,
+    get_executable_extension,
+    get_app_extension,
+    Platform,
+    Architecture,
+    PlatformInfo,
+)
 
 
 def run_command(
@@ -133,56 +131,7 @@ def load_config(config_path: Path) -> Dict:
     return config
 
 
-# Platform-specific utilities
-def get_platform() -> str:
-    """Get platform name in a consistent format"""
-    if IS_WINDOWS():
-        return "windows"
-    elif IS_MACOS():
-        return "macos"
-    elif IS_LINUX():
-        return "linux"
-    return "unknown"
-
-
-def get_platform_arch() -> str:
-    """Get default architecture for current platform"""
-    if IS_WINDOWS():
-        return "x64"
-    elif IS_MACOS():
-        # macOS can be arm64 or x64
-        import platform
-
-        return "arm64" if platform.machine() == "arm64" else "x64"
-    elif IS_LINUX():
-        # Linux can be x64 or arm64
-        import platform
-
-        machine = platform.machine()
-        if machine in ["x86_64", "AMD64"]:
-            return "x64"
-        elif machine in ["aarch64", "arm64"]:
-            return "arm64"
-        else:
-            # Default to x64 for unknown architectures
-            return "x64"
-    return "x64"
-
-
-def get_executable_extension() -> str:
-    """Get executable file extension for current platform"""
-    return ".exe" if IS_WINDOWS() else ""
-
-
-def get_app_extension() -> str:
-    """Get application bundle extension for current platform"""
-    if IS_MACOS():
-        return ".app"
-    elif IS_WINDOWS():
-        return ".exe"
-    return ""
-
-
+# Platform-specific path utilities
 def normalize_path(path: Union[str, Path]) -> Path:
     """Normalize path for current platform"""
     path = Path(path)
