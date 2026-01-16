@@ -226,7 +226,8 @@ def safe_rmtree(path: Union[str, Path]) -> None:
             if path.is_symlink() or (path.is_dir() and os.path.islink(str(path))):
                 path.unlink()
                 return
-        except Exception:
+        except (OSError, PermissionError):
+            # If we can't remove as symlink/junction, fall through to rmtree
             pass
 
         # Fall back to rmtree with error handler

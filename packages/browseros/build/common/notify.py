@@ -88,8 +88,10 @@ class Notifier:
             )
 
         except ImportError:
+            # requests module not available
             pass
-        except Exception:
+        except (requests.RequestException, TimeoutError, ConnectionError):
+            # Fire-and-forget: silently ignore network errors for notifications
             pass
 
 
