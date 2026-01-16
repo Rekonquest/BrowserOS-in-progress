@@ -690,7 +690,7 @@
           </button>
           <input type="file" id="fileInput" multiple accept="image/*,.pdf,.txt,.doc,.docx" onchange="handleFileSelect(event)">
           <div style="flex: 1; text-align: right; font-size: 11px; color: #718096; padding: 0 8px;">
-            💡 Images sent via vision API (efficient, not as text)
+            💡 Images: vision API | Files: RAG chunked (token-efficient)
           </div>
         </div>
 
@@ -903,6 +903,8 @@
     let chatTemplates = [];
     let isPanelOpen = false;
     let messageHistory = []; // Track full message history for context management
+    let fileStore = {}; // RAG file storage: { file_id: { name, mime, size, chunks[], metadata } }
+    let fileIdCounter = 0;
 
     // Initialize speech recognition if available
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -1358,8 +1360,8 @@
         fullMessage = `Context:\n${settings.rag_context}\n\nUser Query: ${message}`;
       }
 
-      // Read attached files
-      const fileContents = [];
+      // Read attached files - RAG approach
+      const fileIds = []; // Store file IDs for RAG retrieval
       const imageUrls = [];
 
       for (const file of attachedFiles) {
@@ -1372,31 +1374,25 @@
               image_url: { url: compressedBase64 }
             });
           } else {
-            // For text files, read content
+            // For text files, use RAG: chunk and store
             const content = await readFileContent(file);
-            fileContents.push({
-              name: file.name,
-              type: file.type,
-              content: content
-            });
+
+            // Store file with chunking
+            const fileId = await storeFileForRAG(file, content);
+            fileIds.push(fileId);
+
+            // Add only relevant chunks (first 2) to message
+            const fileReference = formatFileReference(fileId, 2);
+            fullMessage += fileReference;
           }
         } catch (error) {
           console.error('Error reading file:', file.name, error);
         }
       }
 
-      // Add text file contents to message (not images)
-      if (fileContents.length > 0) {
-        let fileText = '\n\n[Attached Files]:\n';
-        for (const file of fileContents) {
-          fileText += `\n[File: ${file.name}]\n${file.content}\n`;
-        }
-        fullMessage += fileText;
-      }
-
       // Add user message to history and UI
-      // Only store text in history (not image data - that's sent separately)
-      const historyMessage = message + (fileContents.length > 0 ? ' [with ' + fileContents.length + ' files]' : '') + (imageUrls.length > 0 ? ' [with ' + imageUrls.length + ' images]' : '');
+      // Only store text in history (not full file data - that's in RAG store)
+      const historyMessage = message + (fileIds.length > 0 ? ` [with ${fileIds.length} files: ${fileIds.join(', ')}]` : '') + (imageUrls.length > 0 ? ' [with ' + imageUrls.length + ' images]' : '');
       messageHistory.push({ role: 'user', content: historyMessage });
 
       const uiFiles = [...attachedFiles];
@@ -1423,6 +1419,18 @@
         // Warn if approaching limit
         if (trimResult.tokensUsed > trimResult.tokensAvailable * 0.8) {
           console.warn('⚠️ Approaching context limit! Consider clearing chat or reducing KV cache size.');
+        }
+
+        // Guardrail: Check for token overflow
+        try {
+          const messageTokens = checkTokenOverflow(fullMessage, 15000); // Max 15k tokens per message
+          console.log(`✓ Message passed guardrail: ${messageTokens} tokens`);
+        } catch (error) {
+          showError(error.message);
+          isLoading = false;
+          document.getElementById('sendBtn').disabled = false;
+          document.getElementById('loadingIndicator').classList.remove('active');
+          return;
         }
 
         // Build message content (text + images as separate blocks)
@@ -1594,6 +1602,146 @@
         reader.onerror = () => reject(new Error('Failed to read image file'));
         reader.readAsDataURL(file);
       });
+    }
+
+    // RAG: Chunk text into token-budgeted segments
+    function chunkText(text, maxTokensPerChunk = 1000) {
+      const chunks = [];
+      const estimatedTokens = estimateTokens(text);
+
+      if (estimatedTokens <= maxTokensPerChunk) {
+        // Small enough, return as single chunk
+        return [{ text: text, tokens: estimatedTokens, index: 0 }];
+      }
+
+      // Split by paragraphs first (double newline)
+      const paragraphs = text.split(/\n\n+/);
+      let currentChunk = '';
+      let currentTokens = 0;
+      let chunkIndex = 0;
+
+      for (const para of paragraphs) {
+        const paraTokens = estimateTokens(para);
+
+        if (currentTokens + paraTokens > maxTokensPerChunk && currentChunk) {
+          // Save current chunk
+          chunks.push({
+            text: currentChunk.trim(),
+            tokens: currentTokens,
+            index: chunkIndex++
+          });
+          currentChunk = '';
+          currentTokens = 0;
+        }
+
+        // If single paragraph is too large, split by sentences
+        if (paraTokens > maxTokensPerChunk) {
+          const sentences = para.split(/[.!?]+\s+/);
+          for (const sent of sentences) {
+            const sentTokens = estimateTokens(sent);
+            if (currentTokens + sentTokens > maxTokensPerChunk && currentChunk) {
+              chunks.push({
+                text: currentChunk.trim(),
+                tokens: currentTokens,
+                index: chunkIndex++
+              });
+              currentChunk = sent + '. ';
+              currentTokens = sentTokens;
+            } else {
+              currentChunk += sent + '. ';
+              currentTokens += sentTokens;
+            }
+          }
+        } else {
+          currentChunk += para + '\n\n';
+          currentTokens += paraTokens;
+        }
+      }
+
+      // Add final chunk
+      if (currentChunk.trim()) {
+        chunks.push({
+          text: currentChunk.trim(),
+          tokens: currentTokens,
+          index: chunkIndex
+        });
+      }
+
+      return chunks;
+    }
+
+    // RAG: Store file with chunking
+    async function storeFileForRAG(file, content) {
+      const fileId = `f_${++fileIdCounter}`;
+
+      // Chunk the content
+      const chunks = chunkText(content, 1000); // 1000 tokens per chunk
+
+      const totalTokens = chunks.reduce((sum, chunk) => sum + chunk.tokens, 0);
+
+      // Store file metadata and chunks
+      fileStore[fileId] = {
+        id: fileId,
+        name: file.name,
+        mime: file.type,
+        size: file.size,
+        chunks: chunks,
+        totalTokens: totalTokens,
+        uploadedAt: new Date().toISOString()
+      };
+
+      console.log(`📚 RAG: Stored ${file.name} (${chunks.length} chunks, ~${totalTokens} tokens)`);
+
+      return fileId;
+    }
+
+    // RAG: Get relevant chunks (simple: first N chunks)
+    function getRelevantChunks(fileId, maxChunks = 2) {
+      const file = fileStore[fileId];
+      if (!file) return null;
+
+      // Simple strategy: return first maxChunks
+      // Advanced: keyword search or embedding similarity
+      const selectedChunks = file.chunks.slice(0, maxChunks);
+      const hasMore = file.chunks.length > maxChunks;
+
+      return {
+        fileId: fileId,
+        fileName: file.name,
+        chunks: selectedChunks,
+        hasMore: hasMore,
+        totalChunks: file.chunks.length,
+        moreAvailable: hasMore ? `(${file.chunks.length - maxChunks} more chunks available)` : ''
+      };
+    }
+
+    // RAG: Format file reference for model
+    function formatFileReference(fileId, maxChunks = 2) {
+      const result = getRelevantChunks(fileId, maxChunks);
+      if (!result) return '';
+
+      let formatted = `\n\n[File: ${result.fileName}]\n`;
+      formatted += `[Showing ${result.chunks.length} of ${result.totalChunks} chunks]\n\n`;
+
+      result.chunks.forEach(chunk => {
+        formatted += `--- Chunk ${chunk.index + 1} ---\n${chunk.text}\n\n`;
+      });
+
+      if (result.hasMore) {
+        formatted += `... ${result.moreAvailable} ...\n`;
+      }
+
+      return formatted;
+    }
+
+    // Guardrail: Check for token overflow before sending
+    function checkTokenOverflow(message, maxAllowed = 10000) {
+      const tokens = estimateTokens(message);
+      if (tokens > maxAllowed) {
+        console.error(`🚫 Token overflow detected: ${tokens} tokens (max: ${maxAllowed})`);
+        throw new Error(`Message too long: ${tokens} tokens (max: ${maxAllowed}). This usually means a file wasn't properly chunked.`);
+      }
+      return tokens;
     }
 
     // Add message to chat
