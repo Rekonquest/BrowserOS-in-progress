@@ -942,9 +942,36 @@
       `).join('');
     }
 
-    function selectModel(modelName) {
-      alert(`Selected model: ${modelName}\nThis would update the model ID in the provider settings.`);
-      // In real implementation, this would update the provider configuration
+    async function selectModel(modelName) {
+      try {
+        // Get the backend URL
+        const urlInput = document.getElementById('backendUrl');
+        const backendUrl = urlInput ? urlInput.value : 'http://localhost:1234/v1';
+
+        // Call API to select model
+        const response = await fetch('/api/select-model', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            model_id: modelName,
+            backend_url: backendUrl
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Show success message
+          alert(`✓ Model selected: ${modelName}\n\nRedirecting to chat...`);
+
+          // Redirect to chat interface
+          window.location.href = '/chat';
+        } else {
+          alert(`✗ Error selecting model: ${data.error}`);
+        }
+      } catch (error) {
+        alert(`✗ Error: ${error.message}`);
+      }
     }
 
     // Initialize on load

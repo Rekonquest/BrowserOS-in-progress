@@ -176,6 +176,12 @@ def index():
             </div>
 
             <div class="features">
+                <a href="/chat" class="feature-card" style="grid-column: span 2;">
+                    <div class="feature-icon">💬</div>
+                    <div class="feature-title">Chat Interface</div>
+                    <div class="feature-desc">Chat with your LM Studio models - select a model in Advanced Settings first!</div>
+                </a>
+
                 <a href="/advanced-settings" class="feature-card">
                     <div class="feature-icon">⚙️</div>
                     <div class="feature-title">Advanced Settings</div>
@@ -572,6 +578,10 @@ def api_discover():
         }
 
         for backend in backends:
+            # ONLY include backends that are actually available/running
+            if not backend.is_available or len(backend.models) == 0:
+                continue
+
             backend_data = {
                 'name': backend.name,
                 'type': backend.type.value if hasattr(backend.type, 'value') else str(backend.type),
@@ -659,6 +669,158 @@ def api_test_client():
             'success': False,
             'error': str(e)
         })
+
+# ============================================================================
+# Chat System (Model Selection + Chat Interface)
+# ============================================================================
+
+# Store selected model and backend URL (in production, use sessions or database)
+chat_state = {
+    'model': None,
+    'backend_url': None,
+    'system_prompt': None,
+    'chat_history': []
+}
+
+@app.route('/api/select-model', methods=['POST'])
+def api_select_model():
+    """Select a model for chat"""
+    try:
+        data = request.json
+        model_id = data.get('model_id')
+        backend_url = data.get('backend_url')
+
+        if not model_id:
+            return jsonify({'success': False, 'error': 'model_id required'})
+
+        # Store in session state
+        chat_state['model'] = model_id
+        chat_state['backend_url'] = backend_url or 'http://localhost:1234/v1'
+        chat_state['chat_history'] = []  # Clear history when switching models
+
+        logger.info(f"Selected model: {model_id} at {chat_state['backend_url']}")
+
+        return jsonify({
+            'success': True,
+            'model': model_id,
+            'backend_url': chat_state['backend_url']
+        })
+
+    except Exception as e:
+        logger.error(f"Error selecting model: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/chat', methods=['POST'])
+def api_chat():
+    """Send a chat message to the selected model"""
+    try:
+        import aiohttp
+    except ImportError:
+        return jsonify({
+            'success': False,
+            'error': 'aiohttp not installed. Install with: pip install aiohttp'
+        })
+
+    try:
+        data = request.json
+        user_message = data.get('message')
+        system_prompt = data.get('system_prompt') or chat_state.get('system_prompt')
+
+        if not user_message:
+            return jsonify({'success': False, 'error': 'message required'})
+
+        if not chat_state['model']:
+            return jsonify({'success': False, 'error': 'No model selected. Go to Advanced Settings to select a model.'})
+
+        # Build messages for API
+        messages = []
+        if system_prompt:
+            messages.append({'role': 'system', 'content': system_prompt})
+
+        # Add chat history
+        messages.extend(chat_state['chat_history'])
+
+        # Add current message
+        messages.append({'role': 'user', 'content': user_message})
+
+        # Call LM Studio API
+        async def do_chat():
+            async with aiohttp.ClientSession() as session:
+                payload = {
+                    'model': chat_state['model'],
+                    'messages': messages,
+                    'temperature': data.get('temperature', 0.7),
+                    'max_tokens': data.get('max_tokens', 2000),
+                }
+
+                async with session.post(
+                    f"{chat_state['backend_url']}/chat/completions",
+                    json=payload,
+                    timeout=aiohttp.ClientTimeout(total=120)
+                ) as response:
+                    if response.status != 200:
+                        error_text = await response.text()
+                        raise Exception(f"API error {response.status}: {error_text}")
+
+                    result = await response.json()
+                    return result
+
+        # Run async code
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(do_chat())
+        finally:
+            loop.close()
+
+        # Extract response
+        if 'choices' not in result or len(result['choices']) == 0:
+            return jsonify({'success': False, 'error': 'No response from model'})
+
+        assistant_message = result['choices'][0]['message']['content']
+
+        # Update chat history
+        chat_state['chat_history'].append({'role': 'user', 'content': user_message})
+        chat_state['chat_history'].append({'role': 'assistant', 'content': assistant_message})
+
+        # Keep only last 10 messages (5 exchanges) to prevent context overflow
+        if len(chat_state['chat_history']) > 20:
+            chat_state['chat_history'] = chat_state['chat_history'][-20:]
+
+        return jsonify({
+            'success': True,
+            'response': assistant_message,
+            'model': chat_state['model'],
+            'usage': result.get('usage', {})
+        })
+
+    except Exception as e:
+        logger.error(f"Error in chat: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@app.route('/api/chat/clear', methods=['POST'])
+def api_chat_clear():
+    """Clear chat history"""
+    chat_state['chat_history'] = []
+    return jsonify({'success': True})
+
+@app.route('/api/chat/status', methods=['GET'])
+def api_chat_status():
+    """Get current chat status"""
+    return jsonify({
+        'success': True,
+        'model': chat_state.get('model'),
+        'backend_url': chat_state.get('backend_url'),
+        'history_length': len(chat_state.get('chat_history', []))
+    })
+
+@app.route('/chat')
+def chat():
+    """Chat interface page"""
+    return send_from_directory('resources', 'chat.html')
 
 # ============================================================================
 # Main Application Entry Point
