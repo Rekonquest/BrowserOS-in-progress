@@ -7,6 +7,12 @@ from typing import Generator
 
 import pytest
 
+# Import all fixtures from fixtures package
+pytest_plugins = [
+    "tests.fixtures.context",
+    "tests.fixtures.modules",
+]
+
 
 @pytest.fixture
 def temp_dir() -> Generator[Path, None, None]:
