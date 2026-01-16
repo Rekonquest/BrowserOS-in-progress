@@ -16,6 +16,9 @@
 **/releases/
 **/.wrangler/
 **/node_modules/
+**/.coverage
+**/coverage.xml
+**/htmlcov/
 
 
 
