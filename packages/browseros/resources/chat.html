@@ -777,6 +777,72 @@
           </div>
         </div>
 
+        <!-- Memory & Cache Optimization -->
+        <div class="panel-section">
+          <div class="panel-section-title">🧠 Memory & Cache Settings</div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              <span>KV Cache Size</span>
+              <span class="setting-value" id="kvCacheValue">2048</span>
+            </div>
+            <input type="range" class="setting-slider" id="kvCache"
+                   min="512" max="32768" step="512" value="2048"
+                   oninput="updateSettingValue('kvCache', 'kvCacheValue')">
+            <div style="font-size: 11px; color: #718096; margin-top: 4px;">
+              Controls context window size
+            </div>
+            <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+              <button onclick="setKVCachePreset(512)" style="padding: 4px 10px; font-size: 11px; border: 1px solid #e2e8f0; background: white; border-radius: 4px; cursor: pointer;">512</button>
+              <button onclick="setKVCachePreset(2048)" style="padding: 4px 10px; font-size: 11px; border: 1px solid #e2e8f0; background: white; border-radius: 4px; cursor: pointer;">2k</button>
+              <button onclick="setKVCachePreset(4096)" style="padding: 4px 10px; font-size: 11px; border: 1px solid #e2e8f0; background: white; border-radius: 4px; cursor: pointer;">4k</button>
+              <button onclick="setKVCachePreset(8192)" style="padding: 4px 10px; font-size: 11px; border: 1px solid #e2e8f0; background: white; border-radius: 4px; cursor: pointer;">8k</button>
+              <button onclick="setKVCachePreset(16384)" style="padding: 4px 10px; font-size: 11px; border: 1px solid #e2e8f0; background: white; border-radius: 4px; cursor: pointer;">16k</button>
+              <button onclick="setKVCachePreset(32768)" style="padding: 4px 10px; font-size: 11px; border: 1px solid #e2e8f0; background: white; border-radius: 4px; cursor: pointer;">32k</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              <span>Cache Quantization</span>
+            </div>
+            <select class="setting-select" id="cacheQuant">
+              <option value="f16">F16 (Best quality, high VRAM)</option>
+              <option value="q8_0" selected>Q8_0 (Recommended - balanced)</option>
+              <option value="q4_0">Q4_0 (Low VRAM, some quality loss)</option>
+              <option value="q4_1">Q4_1 (Very low VRAM)</option>
+            </select>
+            <div style="font-size: 11px; color: #718096; margin-top: 4px;">
+              Lower precision = less VRAM usage
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="setting-label">
+              <span>Cache Optimization</span>
+            </div>
+            <select class="setting-select" id="cacheOptimization">
+              <option value="none">None (Standard)</option>
+              <option value="ministral">Ministral Models (3B/8B/14B)</option>
+              <option value="llama3">Llama 3+ Models</option>
+              <option value="aggressive">Aggressive (Max savings)</option>
+            </select>
+            <div style="font-size: 11px; color: #718096; margin-top: 4px;">
+              Model-specific cache optimizations
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
+              <input type="checkbox" id="enableFlashAttention" style="cursor: pointer;">
+              <span>Enable Flash Attention (if supported)</span>
+            </label>
+            <div style="font-size: 11px; color: #718096; margin-top: 4px;">
+              Faster inference with lower memory
+            </div>
+          </div>
+        </div>
+
         <!-- System Prompt Template -->
         <div class="panel-section">
           <div class="panel-section-title">📝 System Prompt</div>
@@ -888,6 +954,14 @@
     function setTokenPreset(value) {
       const slider = document.getElementById('maxTokens');
       const valueDisplay = document.getElementById('tokensValue');
+      slider.value = value;
+      valueDisplay.textContent = value;
+    }
+
+    // Set KV cache preset
+    function setKVCachePreset(value) {
+      const slider = document.getElementById('kvCache');
+      const valueDisplay = document.getElementById('kvCacheValue');
       slider.value = value;
       valueDisplay.textContent = value;
     }
@@ -1246,7 +1320,12 @@
         top_p: parseFloat(document.getElementById('topP').value),
         system_prompt: selectedPrompt ? selectedPrompt.prompt : null,
         chat_template: document.getElementById('chatTemplateSelect').value || null,
-        rag_context: ragFiles.length > 0 ? getRagContext() : null
+        rag_context: ragFiles.length > 0 ? getRagContext() : null,
+        // Memory & Cache settings
+        kv_cache_size: parseInt(document.getElementById('kvCache').value),
+        cache_quantization: document.getElementById('cacheQuant').value,
+        cache_optimization: document.getElementById('cacheOptimization').value,
+        flash_attention: document.getElementById('enableFlashAttention').checked
       };
     }
 
@@ -1329,7 +1408,12 @@
             temperature: settings.temperature,
             max_tokens: settings.max_tokens,
             top_p: settings.top_p,
-            system_prompt: settings.system_prompt
+            system_prompt: settings.system_prompt,
+            // Memory & cache settings
+            kv_cache_size: settings.kv_cache_size,
+            cache_quantization: settings.cache_quantization,
+            cache_optimization: settings.cache_optimization,
+            flash_attention: settings.flash_attention
           })
         });
 
