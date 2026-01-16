@@ -718,6 +718,51 @@
       setupSliders();
       setupMonitoring();
       setupDiscovery();
+      startAutoDetection(); // Auto-detect backends every 10 seconds
+    }
+
+    // Auto-Detection: Automatically discover models when backends are running
+    let autoDetectionInterval = null;
+    let lastDetectionTime = 0;
+
+    function startAutoDetection() {
+      // Run immediately on page load
+      autoDetectModels();
+
+      // Then check every 10 seconds
+      if (autoDetectionInterval) {
+        clearInterval(autoDetectionInterval);
+      }
+      autoDetectionInterval = setInterval(autoDetectModels, 10000);
+    }
+
+    async function autoDetectModels() {
+      const now = Date.now();
+      // Prevent multiple concurrent requests
+      if (now - lastDetectionTime < 5000) {
+        return;
+      }
+      lastDetectionTime = now;
+
+      try {
+        // Get the backend URL input value
+        const urlInput = document.getElementById('backendUrl');
+        const url = urlInput ? urlInput.value : '';
+
+        // Silently discover models in background
+        const models = await discoverModels(url);
+
+        // Only update if we found models
+        if (models && models.length > 0 && models[0].name !== 'No models found') {
+          displayModels(models);
+
+          // Show a subtle notification (don't use alert)
+          console.log(`Auto-detected ${models.length} models from backend`);
+        }
+      } catch (error) {
+        // Silently fail - don't show errors during auto-detection
+        console.log('Auto-detection: No backends available');
+      }
     }
 
     // Render System Prompts
@@ -785,26 +830,35 @@
 
     // Setup Monitoring
     function setupMonitoring() {
-      // Simulate monitoring (in real implementation, this would fetch from system)
-      setInterval(() => {
-        updateMonitor('cpu', Math.random() * 100);
-        updateMonitor('ram', Math.random() * 100);
-        updateMonitor('gpu', Math.random() * 100);
-        updateMonitor('vram', Math.random() * 100);
-      }, 2000);
+      // Show "Not Available" for system monitoring (requires native system access)
+      // In a real browser integration, this would fetch actual system stats
+      updateMonitor('cpu', 0, 'N/A');
+      updateMonitor('ram', 0, 'N/A');
+      updateMonitor('gpu', 0, 'N/A');
+      updateMonitor('vram', 0, 'N/A');
+
+      // Note: System monitoring disabled in demo mode
+      // Would require native system integration or backend API
     }
 
-    function updateMonitor(type, percentage) {
+    function updateMonitor(type, percentage, text) {
       const valueEl = document.getElementById(`${type}Value`);
       const barEl = document.getElementById(`${type}Bar`);
 
-      valueEl.textContent = `${Math.round(percentage)}%`;
-      barEl.style.width = `${percentage}%`;
-
-      if (percentage > 80) {
-        barEl.classList.add('high');
-      } else {
+      // If text is provided (like "N/A"), use that instead of percentage
+      if (text) {
+        valueEl.textContent = text;
+        barEl.style.width = '0%';
         barEl.classList.remove('high');
+      } else {
+        valueEl.textContent = `${Math.round(percentage)}%`;
+        barEl.style.width = `${percentage}%`;
+
+        if (percentage > 80) {
+          barEl.classList.add('high');
+        } else {
+          barEl.classList.remove('high');
+        }
       }
     }
 
@@ -835,29 +889,35 @@
     }
 
     async function discoverModels(url) {
-      // In real implementation, this would call the backend API
-      // For now, simulate discovery
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Call the real backend API
+      try {
+        const response = await fetch('/api/discover');
+        const data = await response.json();
 
-      // Detect backend type
-      if (url.includes(':11434')) {
-        // Ollama
-        return [
-          { name: 'llama3.1:8b', size: '8B', quant: 'Q4_0' },
-          { name: 'mistral:7b', size: '7B', quant: 'Q5_K_M' },
-          { name: 'codellama:13b', size: '13B', quant: 'Q4_K_M' },
-        ];
-      } else if (url.includes(':1234')) {
-        // LM Studio
-        return [
-          { name: 'TheBloke/Llama-2-13B-GGUF', size: '13B', quant: 'Q4_K_M' },
-          { name: 'TheBloke/Mistral-7B-Instruct-v0.2-GGUF', size: '7B', quant: 'Q5_K_M' },
-        ];
-      } else {
-        return [
-          { name: 'model-1', size: '?', quant: '?' },
-          { name: 'model-2', size: '?', quant: '?' },
-        ];
+        if (!data.success) {
+          throw new Error(data.error || 'Discovery failed');
+        }
+
+        // Convert backend models to display format
+        const models = [];
+        for (const backend of data.backends) {
+          // Only include models from the specified URL or all if URL matches backend
+          if (!url || backend.url.includes(url) || url.includes('localhost') || url.includes('127.0.0.1')) {
+            for (const model of backend.models) {
+              models.push({
+                name: model.model_id,
+                size: model.parameter_count || '?',
+                quant: model.quantization || '?',
+                backend: backend.name
+              });
+            }
+          }
+        }
+
+        return models.length > 0 ? models : [{ name: 'No models found', size: '', quant: '', backend: '' }];
+      } catch (error) {
+        console.error('Model discovery error:', error);
+        throw error;
       }
     }
 
@@ -873,7 +933,7 @@
         <div class="model-item">
           <div>
             <div class="model-name">${model.name}</div>
-            <div class="model-meta">${model.size} • ${model.quant}</div>
+            <div class="model-meta">${model.size}${model.quant !== '?' ? ' • ' + model.quant : ''}${model.backend ? ' • ' + model.backend : ''}</div>
           </div>
           <button class="model-select-btn" onclick="selectModel('${model.name}')">
             Use Model
