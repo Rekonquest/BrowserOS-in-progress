@@ -314,9 +314,9 @@ class Context:
         if not self.semantic_version:
             self.semantic_version = self._load_semantic_version(self.root_dir)
 
-        # Set nxtscape_chromium_version as chromium version with BUILD + nxtscape_version
+        # Set browseros_chromium_version as chromium version with BUILD + browseros_build_offset
         if self.chromium_version and self.browseros_build_offset and version_dict:
-            # Calculate new BUILD number by adding nxtscape_version to original BUILD
+            # Calculate new BUILD number by adding browseros_build_offset to original BUILD
             new_build = int(version_dict["BUILD"]) + int(self.browseros_build_offset)
             self.browseros_chromium_version = f"{version_dict['MAJOR']}.{version_dict['MINOR']}.{new_build}.{version_dict['PATCH']}"
 

@@ -1,9 +1,11 @@
-#!/usr/bin/env python
-# coding: utf-8
+#!/usr/bin/env python3
+"""Patched version of Chromium's universalizer.py for BrowserOS.
 
-# Copyright Nxtscape Authors
-# Patch of src/chrome/installer/mac/universalizer.py to handle merging of two archs
-# for MacOS into unverisal build when third_party tools already are in universal format
+Copyright BrowserOS Authors
+
+Modified from src/chrome/installer/mac/universalizer.py to handle merging of two archs
+for macOS into universal build when third_party tools are already in universal format.
+"""
 
 import argparse
 import errno
@@ -92,25 +94,15 @@ def _sole_list_element(l, exception_message):
 
 
 def _read_plist(path):
-    """Reads a macOS property list, API compatibility adapter."""
+    """Reads a macOS property list."""
     with open(path, "rb") as file:
-        try:
-            # New API, available since Python 3.4.
-            return plistlib.load(file)
-        except AttributeError:
-            # Old API, available (but deprecated) until Python 3.9.
-            return plistlib.readPlist(file)
+        return plistlib.load(file)
 
 
 def _write_plist(value, path):
-    """Writes a macOS property list, API compatibility adapter."""
+    """Writes a macOS property list."""
     with open(path, "wb") as file:
-        try:
-            # New API, available since Python 3.4.
-            plistlib.dump(value, file)
-        except AttributeError:
-            # Old API, available (but deprecated) until Python 3.9.
-            plistlib.writePlist(value, file)
+        plistlib.dump(value, file)
 
 
 class CantMergeException(Exception):

@@ -1,283 +1,320 @@
-# Contributing to BrowserOS
+# Contributing to NexusOS
 
-Hey there! Thanks for your interest in BrowserOS. Whether you're fixing bugs, adding features, improving docs, or just poking around the code, we're glad you're here.
+Thank you for your interest in contributing to NexusOS! This is an independent open-source project focused on building a privacy-first Chromium browser with native AI agent capabilities.
 
-BrowserOS is a monorepo with two main parts:
-- **Agent** - The Chrome extension with AI features (TypeScript/React)
-- **Browser** - The custom Chromium build (C++/Python)
+## 🏗️ Repository Structure
 
-Most folks start with the agent since it's way easier to set up and iterate on.
+NexusOS is organized into main components:
+- **Browser Build System** - Python-based Chromium build system (packages/browseros/)
+- **Agent Submodule** - Chrome extension with AI features (packages/browseros-agent/)
+- **Chromium Patches** - Custom patches applied to base Chromium (packages/browseros/chromium_patches/)
 
-## Pick Your Path
-
-<table>
-<tr>
-<td width="50%">
-
-### 🤖 Agent Development
-
-**What you'll work on:**
-- AI agent features & tools
-- UI/UX improvements
-- Browser automation
-- Testing & docs
-
-**What you need:**
-- Node.js 18+
-- ~500MB disk space
-- 10 minutes to set up
-
-**Skills:** TypeScript, React, Chrome APIs
-
-**[→ Agent Setup](#agent-development)**
-
-</td>
-<td width="50%">
-
-### 🌐 Browser Development
-
-**What you'll work on:**
-- Chromium patches
-- Build system
-- Platform features
-- Core browser stuff
-
-**What you need:**
-- ~100GB disk space
-- 16GB+ RAM (recommended)
-- 3+ hours for first build
-
-**Skills:** C++, Python, Chromium internals
-
-**[→ Browser Setup](#browser-development)**
-
-</td>
-</tr>
-</table>
-
-## Agent Development
-
-The agent is a Chrome extension that provides AI-powered automation. Most contributors work here.
-
-### Quick Setup
-
-```bash
-# 1. Navigate to agent directory
-cd packages/browseros-agent
-
-# 2. Install dependencies
-yarn install
-
-# 3. Set up environment
-cp .env.example .env
-# Edit .env and add your LITELLM_API_KEY
-
-# 4. Build the extension
-yarn build:dev       # One-time build
-```
-
-### Load in BrowserOS 
-
-1. Open `chrome://extensions/`
-2. Enable **Developer mode** (top right toggle)
-3. Click **Load unpacked**
-4. Select `packages/browseros-agent/dist/`
-5. Press Agent icon from extensions toolbar to open the agent panel
-
-**For detailed setup, architecture, and code standards, see [Agent Contributing Guide](packages/browseros-agent/CONTRIBUTING.md).**
-
-## Browser Development
-
-Building the custom Chromium browser requires significant disk space and time. Only go down this path if you're working on browser-level features like patches to Chromium itself.
+## 🚀 Getting Started
 
 ### Prerequisites
-
-- **~100GB disk space** for Chromium source
-- **16GB+ RAM** (recommended)
-- **Platform tools:**
-  - macOS: Xcode + Command Line Tools
-  - Linux: build-essential and dependencies
-  - Windows: Visual Studio Build Tools
+- Git with submodule support
+- Python 3.12 or higher
+- Platform-specific build tools (see below)
 
 ### Quick Setup
 
-**1. Checkout Chromium source**
+```bash
+# Clone repository with submodules
+git clone --recursive https://github.com/Rekonquest/BrowserOS-in-progress.git
+cd BrowserOS-in-progress
 
-First, follow the official Chromium guide for your platform:
-- **[Chromium: Get the Code](https://www.chromium.org/developers/how-tos/get-the-code/)**
+# Initialize submodules (if not cloned with --recursive)
+git submodule update --init --recursive
 
-This will set up `depot_tools` and fetch the ~100GB Chromium source tree. This typically takes 2-3 hours depending on your internet speed.
+# Set up Python environment
+cd packages/browseros
+python3 -m venv env
+source env/bin/activate  # On Windows: env\Scripts\activate
 
-**2. Build BrowserOS**
+# Install dependencies
+pip install -r requirements.txt
 
-Once you have Chromium checked out, navigate to our build system:
+# Install development tools
+pip install -e ".[dev]"
+```
+
+## 🔧 Development Workflow
+
+### 1. Browser Build System Development
+
+The build system is written in modern Python 3.12+ with full type hints and comprehensive testing.
+
+**Key directories:**
+```
+packages/browseros/
+├── build/              # Build modules and CLI
+│   ├── cli/           # CLI commands
+│   ├── common/        # Shared utilities
+│   └── modules/       # Build pipeline modules
+├── chromium_patches/  # Patches applied to Chromium
+├── resources/         # Browser resources
+└── tests/             # Test suite
+```
+
+**Running tests:**
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=build --cov-report=html
+
+# Run specific test types
+pytest -m unit          # Unit tests only
+pytest -m integration   # Integration tests only
+pytest -m "not slow"    # Skip slow tests
+```
+
+**Code quality:**
+```bash
+# Format code
+ruff format .
+
+# Lint code
+ruff check .
+
+# Type check
+pyright
+
+# Security audit
+pip-audit
+```
+
+### 2. Agent Development
+
+The agent is a Chrome extension located in the `packages/browseros-agent/` submodule.
+
+**Setup:**
+```bash
+cd packages/browseros-agent
+
+# See packages/browseros-agent/CONTRIBUTING.md for details
+# (if the submodule includes its own contributing guide)
+```
+
+### 3. Chromium Patches
+
+Patches are located in `packages/browseros/chromium_patches/` and organized by feature.
+
+**Adding a new patch:**
+1. Create your patch file in the appropriate directory
+2. Update the patch series file if needed
+3. Test the patch applies cleanly
+4. Document the purpose in commit message
+
+## 📝 Contribution Guidelines
+
+### Code Style
+
+**Python:**
+- Follow PEP 8 and PEP 257
+- Use type hints for all functions
+- Line length: 88 characters (Black style)
+- Use f-strings for formatting
+- Docstrings: Google style
+
+**C++/Chromium:**
+- Follow Chromium coding style
+- Keep patches minimal and focused
+- Document why patches are needed
+
+### Commit Messages
+
+Use conventional commits format:
+
+```
+type(scope): brief description
+
+Longer description if needed
+
+Fixes #123
+```
+
+**Types:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `refactor`: Code refactoring
+- `test`: Adding or updating tests
+- `docs`: Documentation changes
+- `chore`: Maintenance tasks
+- `security`: Security fixes
+
+**Examples:**
+```
+feat(agent): add new automation tool
+fix(build): resolve macOS compilation error
+refactor(common): modernize config loading
+security: update cryptography to fix CVE-2024-26130
+```
+
+### Pull Request Process
+
+1. **Fork** the repository
+2. **Create** a feature branch from `main`
+   ```bash
+   git checkout -b feature/my-awesome-feature
+   ```
+3. **Make** your changes
+   - Write tests for new functionality
+   - Update documentation
+   - Follow code style guidelines
+4. **Test** your changes
+   ```bash
+   pytest
+   ruff check .
+   pyright
+   ```
+5. **Commit** your changes with clear messages
+6. **Push** to your fork
+   ```bash
+   git push origin feature/my-awesome-feature
+   ```
+7. **Open** a Pull Request
+   - Describe what changed and why
+   - Reference any related issues
+   - Ensure CI passes
+
+### What We Look For
+
+✅ **Good PRs have:**
+- Clear purpose and scope
+- Tests for new functionality
+- Updated documentation
+- Clean commit history
+- Passing CI checks
+
+❌ **Avoid:**
+- Mixing unrelated changes
+- Breaking existing functionality
+- Skipping tests
+- Large, unfocused PRs
+
+## 🧪 Testing
+
+### Test Structure
+
+```
+packages/browseros/tests/
+├── conftest.py              # Pytest configuration
+├── fixtures/                # Shared test fixtures
+├── integration/             # Integration tests
+├── test_*.py               # Unit tests
+└── README.md               # Test documentation
+```
+
+### Writing Tests
+
+```python
+import pytest
+from build.common import Config
+
+def test_config_loading():
+    """Test configuration loads correctly."""
+    config = Config.from_file("test_config.yaml")
+    assert config.chromium_version is not None
+
+@pytest.mark.integration
+def test_build_pipeline():
+    """Test full build pipeline integration."""
+    # Test implementation
+    pass
+```
+
+### Running Specific Tests
 
 ```bash
-cd packages/browseros
+# Run single test file
+pytest tests/test_config.py
 
-# Debug build (for development)
-# macOS
-python build/build.py --config build/config/debug.macos.yaml --chromium-src /path/to/chromium/src --build
+# Run single test function
+pytest tests/test_config.py::test_config_loading
 
-# Linux
-python build/build.py --config build/config/debug.linux.yaml --chromium-src /path/to/chromium/src --build
+# Run with verbose output
+pytest -v
 
-# Windows
-python build/build.py --config build/config/debug.windows.yaml --chromium-src /path/to/chromium/src --build
-
-# Release build (for production)
-# macOS
-python build/build.py --config build/config/release.macos.yaml --chromium-src /path/to/chromium/src --build
-
-# Linux
-python build/build.py --config build/config/release.linux.yaml --chromium-src /path/to/chromium/src --build
-
-# Windows
-python build/build.py --config build/config/release.windows.yaml --chromium-src /path/to/chromium/src --build
+# Run with debugging
+pytest --pdb
 ```
 
-The build typically takes 1-3 hours on modern hardware (M4 Max, Ryzen 9, etc.).
+## 🔒 Security
 
-**For detailed instructions, see [Browser Build Guide](docs/BUILD.md).**
+### Reporting Vulnerabilities
 
-## Making Your First Contribution
+If you discover a security vulnerability:
 
-Open a PR on GitHub with:
-- **Clear title** in conventional commit format
-- **Description** explaining what changed and why
-- **Screenshots/videos** for UI changes
-- **Link to related issues** (e.g., "Fixes #123")
+1. **DO NOT** open a public issue
+2. See [SECURITY.md](.github/SECURITY.md) for reporting instructions
+3. Wait for acknowledgment before disclosing
 
-### Sign the CLA
+### Security Best Practices
 
-On your first PR, our bot will ask you to sign the Contributor License Agreement:
+- Never commit secrets or API keys
+- Use `.env` files for local configuration (already gitignored)
+- Audit dependencies with `pip-audit`
+- Follow secure coding practices
 
-1. Read the [CLA document](CLA.md)
-2. Comment on your PR: `I have read the CLA Document and I hereby sign the CLA`
-3. The bot will record your signature (one-time thing)
+## 📚 Resources
 
-## Code Standards
+### Documentation
+- [Build System Modernization](packages/browseros/BUILD_SYSTEM_MODERNIZATION.md)
+- [Migration Guide](packages/browseros/MIGRATION_GUIDE.md)
+- [Test Documentation](packages/browseros/tests/README.md)
+- [Windows Build Notes](WINDOWS_BUILD_ASSESSMENT.md)
 
-### TypeScript (Agent)
+### External Resources
+- [Chromium Development](https://www.chromium.org/developers/)
+- [Python Type Hints](https://docs.python.org/3/library/typing.html)
+- [Pytest Documentation](https://docs.pytest.org/)
 
-- **Strict typing** - Always declare types, avoid `any`
-- **Zod schemas** - Use Zod instead of TypeScript interfaces
-- **Path aliases** - Use `@/lib` not relative paths like `../`
-- **Naming:**
-  - Classes: `PascalCase`
-  - Functions/variables: `camelCase`
-  - Constants: `UPPERCASE`
-  - Private methods: prefix with `_`
+## 💡 Development Tips
 
-Example:
-```typescript
-import { z } from 'zod'
+### Building Chromium
 
-// Good: Zod schema with inline comments
-export const ToolInputSchema = z.object({
-  action: z.enum(['click', 'type']),  // Action to perform
-  target: z.string().min(1),  // Element selector
-  timeout: z.number().default(5000)  // Timeout in ms
-})
+```bash
+# Full build
+browseros build
 
-export type ToolInput = z.infer<typeof ToolInputSchema>
+# Development build (faster)
+browseros build --dev
+
+# Clean build
+browseros build --clean
 ```
 
-### React (Agent UI)
+### Debugging
 
-- **Styling:** Tailwind CSS only (no SCSS or CSS modules)
-- **Hooks:** Only at top level
-- **Props:** Define with Zod schemas
-- **Testing:** Vitest (not Jest)
+```python
+# Use rich for better debugging output
+from rich import print
+print(my_object)  # Beautiful formatting
 
-### General
-
-- Keep functions short (<20 lines ideally)
-- Write tests for new features
-- Use descriptive variable names
-- Handle errors gracefully
-
-**For detailed standards:**
-- Agent: [packages/browseros-agent/CLAUDE.md](packages/browseros-agent/CLAUDE.md)
-- Browser: Follow Chromium style guide
-
-## Project Structure
-
-```
-monorepo/
-├── packages/
-│   ├── browseros/              # Chromium build system
-│   │   ├── build/             # Python build scripts
-│   │   ├── chromium_patches/  # Patches to Chromium source
-│   │   └── resources/         # Icons, configs
-│   │
-│   └── browseros-agent/        # Chrome extension
-│       ├── src/
-│       │   ├── lib/           # Core agent logic
-│       │   ├── sidepanel/     # Side panel UI
-│       │   ├── newtab/        # New tab page
-│       │   └── background/    # Extension background
-│       └── docs/              # Architecture docs
-│
-├── docs/                       # General documentation
-└── CONTRIBUTING.md            # This file
+# Logging
+import logging
+logger = logging.getLogger(__name__)
+logger.debug("Debug information")
 ```
 
-## Ways to Contribute
+### Performance
 
-You don't need to write code to help out! Here are other ways:
+- Use pytest markers to skip slow tests during development
+- Leverage pytest fixtures for test isolation
+- Use pytest-cov to identify untested code
 
-### 🐛 Report Bugs
+## ❓ Questions?
 
-Found a bug? [Open an issue](https://github.com/browseros-ai/BrowserOS/issues/new) with:
-- Clear description
-- Steps to reproduce
-- Expected vs actual behavior
-- Screenshots/videos
-- Environment details (OS, browser version, BrowserOS version)
+- Check existing [issues](https://github.com/Rekonquest/BrowserOS-in-progress/issues)
+- Open a new issue for bugs or feature requests
+- Read the documentation in the repository
 
-### 💡 Suggest Features
+## 📜 License
 
-Have an idea? [Share it here](https://github.com/browseros-ai/BrowserOS/issues/99) or chat with us on [Discord](https://discord.gg/YKwjt5vuKr).
-
-### 📚 Improve Documentation
-
-- Write blog posts or guides
-
-### 🧪 Test & Provide Feedback
-
-- Try new features
-- Test on different platforms
-- Report edge cases
-- Share your use cases
-
-### 🎨 Design & UX
-
-- Suggest UI improvements
-- Create mockups
-- Improve accessibility
-- Enhance user experience
-
-## Getting Help
-
-Stuck? Need clarification? We're here to help.
-
-- **[Discord](https://discord.gg/YKwjt5vuKr)** - Real-time chat and support
-- **[GitHub Issues](https://github.com/browseros-ai/BrowserOS/issues)** - Bug reports and features
-- **[GitHub Discussions](https://github.com/browseros-ai/BrowserOS/discussions)** - General questions
-
-## Recognition
-
-We appreciate all contributors! You'll get:
-- Credits in release notes
-- Name in README
-
-## License
-
-By contributing, you agree that your contributions will be licensed under AGPL-3.0.
+By contributing to NexusOS, you agree that your contributions will be licensed under the AGPL-3.0 license.
 
 ---
 
-Built with ❤️ from San Francisco
-
-Questions? Hit us up on [Discord](https://discord.gg/YKwjt5vuKr) or [Twitter](https://twitter.com/browseros_ai).
+Thank you for contributing to NexusOS! Every contribution, no matter how small, makes a difference.
