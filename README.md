@@ -1,146 +1,166 @@
-<div align="center">
-<img width="693" height="379" alt="github-banner" src="https://github.com/user-attachments/assets/1e37941c-4dbc-4662-9c8c-3bbe9971301d" />
+# NexusOS
 
-<br></br>
-[![Discord](https://img.shields.io/badge/Discord-Join%20us-blue)](https://discord.gg/YKwjt5vuKr)
-[![Slack](https://img.shields.io/badge/Slack-Join%20us-4A154B?logo=slack&logoColor=white)](https://dub.sh/browserOS-slack)
-[![Twitter](https://img.shields.io/twitter/follow/browserOS_ai?style=social)](https://twitter.com/browseros_ai)
+<div align="center">
+
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
-<br></br>
-<a href="https://files.browseros.com/download/BrowserOS.dmg">
-  <img src="https://img.shields.io/badge/Download-macOS-black?style=flat&logo=apple&logoColor=white" alt="Download for macOS (beta)" />
-</a>
-<a href="https://files.browseros.com/download/BrowserOS_installer.exe">
-  <img src="https://img.shields.io/badge/Download-Windows-0078D4?style=flat&logo=windows&logoColor=white" alt="Download for Windows (beta)" />
-</a>
-<a href="https://files.browseros.com/download/BrowserOS.AppImage">
-  <img src="https://img.shields.io/badge/Download-Linux-FCC624?style=flat&logo=linux&logoColor=black" alt="Download for Linux (beta)" />
-</a>
-<a href="https://cdn.browseros.com/download/BrowserOS.deb">
-  <img src="https://img.shields.io/badge/Download-Debian-D70A53?style=flat&logo=debian&logoColor=white" alt="Download Debian package" />
-</a>
-<br />
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![Built with Chromium](https://img.shields.io/badge/Built%20with-Chromium-4285F4?logo=googlechrome&logoColor=white)](https://www.chromium.org/)
+
+**A privacy-focused Chromium-based browser with native AI agent integration**
+
 </div>
 
-## 
-🌐 BrowserOS is an open-source chromium fork that runs AI agents natively. **Your open-source, privacy-first alternative to ChatGPT Atlas, Perplexity Comet, Dia**.
+---
 
-🔒 Privacy first - use your own API keys or run local models with Ollama. Your data stays on your computer.
+## 🎯 Overview
 
-💡 Join our [Discord](https://discord.gg/YKwjt5vuKr) or [Slack](https://dub.sh/browserOS-slack) and help us build! Have feature requests? [Suggest here](https://github.com/Rekonquest/BrowserOS-in-progress/issues/99).
+NexusOS is an open-source Chromium fork designed for developers and power users who want:
+- **Local-first AI agents** - Run automation on your machine, not in the cloud
+- **Privacy by design** - Bring your own API keys or use local models (Ollama, LMStudio)
+- **Full control** - Open source, auditable, forkable
+- **Chrome compatibility** - Works with all your existing extensions and workflows
 
-## Quick start
+## 🚀 Features
 
-1. Download and install BrowserOS:
-   - [macOS](https://files.browseros.com/download/BrowserOS.dmg)
-   - [Windows](https://files.browseros.com/download/BrowserOS_installer.exe)
-   - [Linux (AppImage)](https://files.browseros.com/download/BrowserOS.AppImage)
-   - [Linux (Debian)](https://cdn.browseros.com/download/BrowserOS.deb)
+### Core Capabilities
+- 🤖 **Native AI Agent Runtime** - Execute automation tasks directly in the browser
+- 🔐 **Privacy-First Architecture** - Your data never leaves your machine
+- 🔌 **MCP Server Support** - Control the browser from external tools via Model Context Protocol
+- 🎨 **Chromium Base** - Full compatibility with Chrome extensions and web standards
+- 🛡️ **Enhanced Privacy** - Integrated privacy patches from ungoogled-chromium
 
-2. Import your Chrome data (optional)
+### AI Integration
+- **Multi-Provider Support** - OpenAI, Anthropic, Google, local models (Ollama/LMStudio)
+- **Bring Your Own Keys** - Use your own API credentials
+- **Local Model Support** - Run completely offline with local LLMs
+- **Agent Automation** - Automate web tasks with AI assistance
 
-3. Connect your AI provider (OpenAI, Anthropic, or local models via Ollama/LMStudio)
+## 🏗️ Building from Source
 
-4. Start automating!
+### Prerequisites
+- Python 3.12 or higher
+- Git with submodule support
+- Platform-specific build tools (see build documentation)
 
-## What makes BrowserOS special
-- 🏠 Feels like home - same familiar interface as Google Chrome, works with all your extensions
-- 🤖 AI agents that run on YOUR browser, not in the cloud
-- 🔒 Privacy first - bring your own keys or use local models with Ollama. Your browsing history stays on your computer
-- 🚀 Open source and community driven - see exactly what's happening under the hood
-- 🤝 BrowserOS as MCP server - you can install our MCP server and use the browser from within `claude-code` or `gemini-cli`.
-- 🛡️ Built-in AI ad blocker that works across more scenarios!  
+### Quick Start
+```bash
+# Clone the repository
+git clone --recursive https://github.com/Rekonquest/BrowserOS-in-progress.git
+cd BrowserOS-in-progress
 
-## Demos
+# Set up Python environment
+cd packages/browseros
+python -m venv env
+source env/bin/activate  # On Windows: env\Scripts\activate
 
-### 🤖 BrowserOS agent in action
-[![BrowserOS agent in action](docs/videos/browserOS-agent-in-action.gif)](https://www.youtube.com/watch?v=SoSFev5R5dI)
-<br/><br/>
+# Install dependencies
+pip install -r requirements.txt
 
-### 🎇 Install [BrowserOS as MCP](https://docs.browseros.com/features/use-with-claude-code) and control it from `claude-code`
+# Run build system
+browseros build --help
+```
 
-https://github.com/user-attachments/assets/c725d6df-1a0d-40eb-a125-ea009bf664dc
+### Development
+```bash
+# Initialize submodules (if not cloned with --recursive)
+git submodule update --init --recursive
 
-<br/><br/>
+# Install development dependencies
+pip install -e ".[dev]"
 
-### 💬 Use BrowserOS to chat
+# Run tests
+pytest
 
-https://github.com/user-attachments/assets/726803c5-8e36-420e-8694-c63a2607beca
+# Run demo application
+python demo_app.py
+```
 
-<br/><br/>
+## 📚 Documentation
 
-### ⚡ Use BrowserOS to scrape data
+### Build System
+- See [packages/browseros/BUILD_SYSTEM_MODERNIZATION.md](packages/browseros/BUILD_SYSTEM_MODERNIZATION.md)
+- Migration guide: [packages/browseros/MIGRATION_GUIDE.md](packages/browseros/MIGRATION_GUIDE.md)
 
-https://github.com/user-attachments/assets/9f038216-bc24-4555-abf1-af2adcb7ebc0
+### Testing
+- Test documentation: [packages/browseros/tests/README.md](packages/browseros/tests/README.md)
+- Test coverage reports available in `htmlcov/` after running tests
 
-<br/><br/>
+### Windows Build
+- Windows-specific information: [WINDOWS_BUILD_ASSESSMENT.md](WINDOWS_BUILD_ASSESSMENT.md)
 
-## Why We're Building BrowserOS
+## 🤝 Contributing
 
-For the first time since Netscape pioneered the web in 1994, AI gives us the chance to completely reimagine the browser. We've seen tools like Cursor deliver 10x productivity gains for developers—yet everyday browsing remains frustratingly archaic.
+Contributions are welcome! This is an independent open-source project.
 
-You're likely juggling 70+ tabs, battling your browser instead of having it assist you. Routine tasks, like ordering something from amazon or filling a form should be handled seamlessly by AI agents.
+### How to Contribute
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-At BrowserOS, we're convinced that AI should empower you by automating tasks locally and securely—keeping your data private. We are building the best browser for this future!
+### Development Guidelines
+- Follow Python 3.12+ best practices
+- Maintain test coverage
+- Update documentation for new features
+- Security fixes are always welcome
 
-## How we compare
+## 🔒 Security
 
-<details>
-<summary><b>vs Chrome</b></summary>
-<br>
-While we're grateful for Google open-sourcing Chromium, but Chrome hasn't evolved much in 10 years. No AI features, no automation, no MCP support.
-</details>
+- **Security-hardened dependencies** - All known CVEs patched (see requirements.txt)
+- **Regular audits** - Automated pip-audit scans via GitHub Actions
+- **Vulnerability reporting** - See [SECURITY.md](.github/SECURITY.md)
 
-<details>
-<summary><b>vs Brave</b></summary>
-<br>
-We love what Brave started, but they've spread themselves too thin with crypto, search, VPNs. We're laser-focused on AI-powered browsing.
-</details>
+## 📦 Project Structure
 
-<details>
-<summary><b>vs Arc/Dia</b></summary>
-<br>
-Many loved Arc, but it was closed source. When they abandoned users, there was no recourse. We're 100% open source - fork it anytime!
-</details>
+```
+.
+├── packages/
+│   └── browseros/          # Main build system and Python code
+│       ├── build/          # Build modules and CLI
+│       ├── chromium_patches/ # Patches applied to Chromium
+│       ├── resources/      # Browser resources and UI
+│       ├── tests/          # Test suite
+│       └── demo_app.py     # Demo application
+├── docs/                   # Documentation
+└── .github/                # GitHub workflows and configurations
+```
 
-<details>
-<summary><b>vs Perplexity Comet</b></summary>
-<br>
-They're a search/ad company. Your browser history becomes their product. We keep everything local.
-</details>
+## 📄 License
 
-<details>
-<summary><b>vs ChatGPT Atlas</b></summary>
-<br>
-Your browsing data could be used for ads or to train their models. We keep your history and agent interactions strictly local.
-</details>
+NexusOS is open source under the [AGPL-3.0 license](LICENSE).
 
-## Contributing
+## 🙏 Credits
 
-We'd love your help making BrowserOS better!
+This project builds upon excellent open-source work:
 
-- 🐛 [Report bugs](https://github.com/Rekonquest/BrowserOS-in-progress/issues)
-- 💡 [Suggest features](https://github.com/Rekonquest/BrowserOS-in-progress/issues/99)
-- 💬 [Join Discord](https://discord.gg/YKwjt5vuKr)
-- 🐦 [Follow on Twitter](https://x.com/browserOS_ai)
+- **[The Chromium Project](https://www.chromium.org/)** - The foundation that makes this possible
+- **[ungoogled-chromium](https://github.com/ungoogled-software/ungoogled-chromium)** - Privacy patches and inspiration
+- **All contributors** - Thank you for making this project better
 
-## License
+---
 
-BrowserOS is open source under the [AGPL-3.0 license](LICENSE).
+## ⚙️ Technical Details
 
-## Credits
+### Python Build System
+- **Modern tooling** - Built with Python 3.12+, pytest, ruff, pyright
+- **Type safety** - Pydantic-based configuration
+- **Comprehensive testing** - Unit, integration, and dynamic tests
+- **Artifact management** - Automated build artifact tracking
 
-- [ungoogled-chromium](https://github.com/ungoogled-software/ungoogled-chromium) - BrowserOS uses some patches for enhanced privacy. Thanks to everyone behind this project!
-- [The Chromium Project](https://www.chromium.org/) - At the core of BrowserOS, making it possible to exist in the first place.
-  
-## Stargazers
-Thank you to all our supporters!
+### Browser Features
+- **Chromium 142.0** base (version may vary, check build)
+- **Cross-platform** - macOS, Windows, Linux support
+- **Extension compatible** - Full Chrome Web Store compatibility
+- **Developer-friendly** - Built by developers, for developers
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Rekonquest/BrowserOS-in-progress&type=Date)](https://www.star-history.com/#Rekonquest/BrowserOS-in-progress&Date)
+---
 
-## 
-<p align="center">
-Built with ❤️ from San Francisco
-</p>
+<div align="center">
 
+**Built for privacy, designed for productivity**
 
+[Report Bug](https://github.com/Rekonquest/BrowserOS-in-progress/issues) ·
+[Request Feature](https://github.com/Rekonquest/BrowserOS-in-progress/issues)
+
+</div>
