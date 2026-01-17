@@ -26,3 +26,9 @@ browseros-cli-access.json
 nxtscape-cli-access.json  # Legacy name kept for backwards compatibility
 gclient.json
 .env
+
+# Build artifacts - Chromium binaries (downloaded, not built)
+**/chromium_bin/
+**/build/temp/
+chromium-*.zip
+chrome-*.zip
