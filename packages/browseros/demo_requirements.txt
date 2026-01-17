@@ -1,0 +1,12 @@
+# BrowserOS Demo Application Requirements
+# Install with: pip install -r demo_requirements.txt
+
+# Web server
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# Optional: For full functionality
+aiohttp>=3.9.0  # Required for model discovery and async API calls
+
+# For building Windows EXE (optional)
+pyinstaller>=6.0.0  # Use: pyinstaller demo_app.spec

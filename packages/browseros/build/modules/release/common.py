@@ -76,7 +76,8 @@ def list_all_versions(env: Optional[EnvConfig] = None) -> List[str]:
 
         try:
             response = client.list_objects_v2(**kwargs)
-        except Exception:
+        except (client.exceptions.NoSuchBucket, client.exceptions.ClientError) as e:
+            log_warning(f"Failed to list S3 objects: {e}")
             break
 
         for prefix in response.get("CommonPrefixes", []):
@@ -124,7 +125,8 @@ def generate_appcast_item(
     try:
         dt = datetime.fromisoformat(build_date.replace("Z", "+00:00"))
         pub_date = dt.strftime("%a, %d %b %Y %H:%M:%S %z")
-    except Exception:
+    except (ValueError, AttributeError) as e:
+        log_warning(f"Failed to parse build date '{build_date}': {e}")
         pub_date = build_date
 
     signature = artifact.get("sparkle_signature", "")
@@ -194,7 +196,7 @@ def get_repo_from_git() -> Optional[str]:
             return remote_url.split(":")[-1].replace(".git", "")
         else:
             return "/".join(remote_url.split("/")[-2:]).replace(".git", "")
-    except Exception:
+    except (subprocess.CalledProcessError, FileNotFoundError, IndexError):
         return None
 
 
@@ -203,5 +205,5 @@ def check_gh_cli() -> bool:
     try:
         subprocess.run(["gh", "--version"], capture_output=True, check=True)
         return True
-    except Exception:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         return False

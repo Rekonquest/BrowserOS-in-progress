@@ -7,10 +7,12 @@ BuildConfig, ArtifactRegistry, EnvConfig) to avoid god object anti-pattern.
 The old interface is maintained for backward compatibility during the migration.
 """
 
+from __future__ import annotations
+
 import time
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Protocol
 from .utils import (
     get_platform,
     get_platform_arch,
@@ -21,6 +23,39 @@ from .utils import (
 )
 from .env import EnvConfig
 from .paths import get_package_root
+
+
+# =============================================================================
+# Protocols - Modern Python typing patterns
+# =============================================================================
+
+
+class ArtifactRegistryProtocol(Protocol):
+    """
+    Protocol for artifact registry implementations.
+
+    This protocol defines the interface that any artifact registry must implement.
+    Using protocols allows for better duck typing and more flexible code.
+
+    Any class implementing these methods can be used as an artifact registry,
+    without needing to inherit from a base class.
+    """
+
+    def add(self, name: str, path: Path) -> None:
+        """Register an artifact."""
+        ...
+
+    def get(self, name: str) -> Path:
+        """Get artifact path by name."""
+        ...
+
+    def has(self, name: str) -> bool:
+        """Check if artifact exists."""
+        ...
+
+    def all(self) -> Dict[str, Path]:
+        """Get all artifacts as a dictionary."""
+        ...
 
 
 # =============================================================================

@@ -1,0 +1,78 @@
+name: Security Scan
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "packages/browseros/pyproject.toml"
+      - "packages/browseros/uv.lock"
+      - ".github/workflows/security-scan.yml"
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - "packages/browseros/pyproject.toml"
+      - "packages/browseros/uv.lock"
+      - ".github/workflows/security-scan.yml"
+  schedule:
+    # Run daily at 2 AM UTC to catch newly disclosed vulnerabilities
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  pip-audit:
+    name: Python Dependency Security Scan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/browseros
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras --dev
+
+      - name: Run pip-audit
+        run: |
+          uv run pip-audit --desc --require-hashes --strict
+
+      - name: Upload vulnerability report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulnerability-report
+          path: |
+            packages/browseros/*.txt
+            packages/browseros/*.json
+          retention-days: 30
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+          deny-licenses: GPL-2.0, GPL-3.0

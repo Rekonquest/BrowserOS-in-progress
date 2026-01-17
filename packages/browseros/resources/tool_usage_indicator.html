@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<!--
+  Tool Usage Indicator Overlay
+
+  Visual indicator that shows when AI models are actively using tools.
+  Displays a glowing, pulsing blue border around the viewport, similar to
+  Gemini and Comet's visual feedback.
+
+  Usage:
+    - Include this in WebView/iframe
+    - Call window.showToolUsage(toolName, toolType) to show indicator
+    - Call window.hideToolUsage() to hide indicator
+-->
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tool Usage Indicator</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .tool-indicator-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: 999999;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+    }
+
+    .tool-indicator-overlay.active {
+      opacity: 1;
+    }
+
+    /* Glowing blue border effect */
+    .tool-indicator-border {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border: 4px solid rgba(66, 133, 244, 0.8);
+      box-shadow:
+        0 0 10px rgba(66, 133, 244, 0.6),
+        0 0 20px rgba(66, 133, 244, 0.4),
+        inset 0 0 10px rgba(66, 133, 244, 0.3);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* Pulsing animation */
+    @keyframes pulse {
+      0%, 100% {
+        border-color: rgba(66, 133, 244, 0.8);
+        box-shadow:
+          0 0 10px rgba(66, 133, 244, 0.6),
+          0 0 20px rgba(66, 133, 244, 0.4),
+          inset 0 0 10px rgba(66, 133, 244, 0.3);
+      }
+      50% {
+        border-color: rgba(66, 133, 244, 1);
+        box-shadow:
+          0 0 20px rgba(66, 133, 244, 0.8),
+          0 0 40px rgba(66, 133, 244, 0.6),
+          inset 0 0 20px rgba(66, 133, 244, 0.5);
+      }
+    }
+
+    /* Tool info badge */
+    .tool-info-badge {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(66, 133, 244, 0.95);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      pointer-events: auto;
+      z-index: 1000000;
+    }
+
+    .tool-info-badge.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .tool-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Spinning loader animation */
+    .tool-icon::after {
+      content: '';
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Color variants for different tool types */
+    .tool-indicator-border.browser {
+      border-color: rgba(66, 133, 244, 0.8);  /* Blue */
+    }
+
+    .tool-indicator-border.filesystem {
+      border-color: rgba(52, 168, 83, 0.8);  /* Green */
+    }
+
+    .tool-indicator-border.terminal {
+      border-color: rgba(251, 188, 5, 0.8);  /* Yellow */
+    }
+
+    .tool-indicator-border.api {
+      border-color: rgba(234, 67, 53, 0.8);  /* Red */
+    }
+
+    .tool-info-badge.browser {
+      background: rgba(66, 133, 244, 0.95);
+    }
+
+    .tool-info-badge.filesystem {
+      background: rgba(52, 168, 83, 0.95);
+    }
+
+    .tool-info-badge.terminal {
+      background: rgba(251, 188, 5, 0.95);
+    }
+
+    .tool-info-badge.api {
+      background: rgba(234, 67, 53, 0.95);
+    }
+
+    /* Close button */
+    .close-button {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      padding: 0;
+      margin-left: 8px;
+    }
+
+    .close-button:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .close-button::before {
+      content: '×';
+      font-size: 20px;
+      line-height: 1;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div id="toolIndicatorOverlay" class="tool-indicator-overlay">
+    <div id="toolIndicatorBorder" class="tool-indicator-border"></div>
+  </div>
+
+  <div id="toolInfoBadge" class="tool-info-badge">
+    <div class="tool-icon"></div>
+    <span id="toolName">Using Tool</span>
+    <button class="close-button" onclick="window.hideToolUsage()" aria-label="Close"></button>
+  </div>
+
+  <script>
+    // Global API for controlling the tool usage indicator
+    let currentToolType = 'browser';
+    let hideTimeout = null;
+
+    /**
+     * Shows the tool usage indicator
+     * @param {string} toolName - Name of the tool being used
+     * @param {string} toolType - Type of tool: 'browser', 'filesystem', 'terminal', 'api'
+     * @param {number} autoHideMs - Auto-hide after milliseconds (0 = don't auto-hide)
+     */
+    window.showToolUsage = function(toolName, toolType = 'browser', autoHideMs = 0) {
+      const overlay = document.getElementById('toolIndicatorOverlay');
+      const border = document.getElementById('toolIndicatorBorder');
+      const badge = document.getElementById('toolInfoBadge');
+      const nameElement = document.getElementById('toolName');
+
+      // Update tool type
+      currentToolType = toolType;
+
+      // Remove previous type classes
+      border.classList.remove('browser', 'filesystem', 'terminal', 'api');
+      badge.classList.remove('browser', 'filesystem', 'terminal', 'api');
+
+      // Add new type class
+      border.classList.add(toolType);
+      badge.classList.add(toolType);
+
+      // Update badge text
+      nameElement.textContent = toolName || 'Using Tool';
+
+      // Show indicator
+      overlay.classList.add('active');
+      badge.classList.add('visible');
+
+      // Clear any existing auto-hide timeout
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+        hideTimeout = null;
+      }
+
+      // Set auto-hide if requested
+      if (autoHideMs > 0) {
+        hideTimeout = setTimeout(() => {
+          window.hideToolUsage();
+        }, autoHideMs);
+      }
+
+      // Dispatch custom event for parent window
+      window.parent.postMessage({
+        type: 'tool-usage-started',
+        toolName: toolName,
+        toolType: toolType
+      }, '*');
+
+      console.log(`Tool usage indicator shown: ${toolName} (${toolType})`);
+    };
+
+    /**
+     * Hides the tool usage indicator
+     */
+    window.hideToolUsage = function() {
+      const overlay = document.getElementById('toolIndicatorOverlay');
+      const badge = document.getElementById('toolInfoBadge');
+
+      overlay.classList.remove('active');
+      badge.classList.remove('visible');
+
+      // Clear auto-hide timeout
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+        hideTimeout = null;
+      }
+
+      // Dispatch custom event for parent window
+      window.parent.postMessage({
+        type: 'tool-usage-ended'
+      }, '*');
+
+      console.log('Tool usage indicator hidden');
+    };
+
+    /**
+     * Returns whether the indicator is currently showing
+     */
+    window.isShowingToolUsage = function() {
+      const overlay = document.getElementById('toolIndicatorOverlay');
+      return overlay.classList.contains('active');
+    };
+
+    /**
+     * Updates the tool name while indicator is showing
+     */
+    window.updateToolName = function(toolName) {
+      const nameElement = document.getElementById('toolName');
+      nameElement.textContent = toolName;
+    };
+
+    // Listen for messages from parent window
+    window.addEventListener('message', (event) => {
+      const { type, toolName, toolType, autoHideMs } = event.data;
+
+      switch (type) {
+        case 'show-tool-usage':
+          window.showToolUsage(toolName, toolType, autoHideMs);
+          break;
+        case 'hide-tool-usage':
+          window.hideToolUsage();
+          break;
+        case 'update-tool-name':
+          window.updateToolName(toolName);
+          break;
+      }
+    });
+
+    // Test mode: show indicator on page load if ?test=true
+    if (window.location.search.includes('test=true')) {
+      setTimeout(() => {
+        window.showToolUsage('Web Browser', 'browser');
+      }, 1000);
+    }
+
+    console.log('Tool Usage Indicator overlay loaded');
+  </script>
+</body>
+</html>
