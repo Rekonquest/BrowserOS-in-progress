@@ -87,8 +87,12 @@ def _resolve_config_mode(
     chromium_src = Path(chromium_src_str)
     chromium_src_source = "cli" if cli_args.get("chromium_src") else "yaml"
 
-    # Validate chromium_src exists
-    if not chromium_src.exists():
+    # Validate chromium_src exists (skip if using chromium_download module)
+    # The chromium_download module will create the directory automatically
+    modules_list = yaml_config.get("modules", [])
+    using_chromium_download = "chromium_download" in modules_list
+
+    if not chromium_src.exists() and not using_chromium_download:
         raise ValueError(
             f"CONFIG MODE: chromium_src does not exist: {chromium_src}\n"
             f"Expected directory with Chromium source code"
@@ -147,8 +151,12 @@ def _resolve_direct_mode(cli_args: Dict[str, Any]) -> Context:
 
     chromium_src = Path(chromium_src)
 
-    # Validate chromium_src exists
-    if not chromium_src.exists():
+    # Validate chromium_src exists (skip if using chromium_download module)
+    # The chromium_download module will create the directory automatically
+    modules_str = cli_args.get("modules", "")
+    using_chromium_download = "chromium_download" in modules_str
+
+    if not chromium_src.exists() and not using_chromium_download:
         raise ValueError(
             f"DIRECT MODE: chromium_src does not exist: {chromium_src}\n"
             f"Expected directory with Chromium source code"
