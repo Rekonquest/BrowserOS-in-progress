@@ -172,7 +172,7 @@ class ChromiumDownloadModule(CommandModule):
 
         # Get latest build number for the platform
         base_url = CHROMIUM_SNAPSHOT_BASE_URLS["official"]
-        latest_url = f"{base_url}/{platform_dir}/LATEST"
+        latest_url = f"{base_url}/{platform_dir}/LAST_CHANGE"
 
         log_info(f"Fetching latest build number from: {latest_url}")
 
@@ -184,8 +184,9 @@ class ChromiumDownloadModule(CommandModule):
             log_success(f"Latest build number: {build_number}")
         except Exception as e:
             log_error(f"Failed to fetch latest build number: {e}")
-            log_warning("Falling back to recent known build: 1400000")
-            build_number = "1400000"
+            # Use a more recent known working build number
+            log_warning("Falling back to recent known build: 1570000")
+            build_number = "1570000"
 
         download_url = f"{base_url}/{platform_dir}/{build_number}/{archive_name}"
         log_info(f"Download URL: {download_url}")
