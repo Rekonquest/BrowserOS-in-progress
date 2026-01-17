@@ -229,7 +229,7 @@ You don't need to write code to help out! Here are other ways:
 
 ### 🐛 Report Bugs
 
-Found a bug? [Open an issue](https://github.com/browseros-ai/BrowserOS/issues/new) with:
+Found a bug? [Open an issue](https://github.com/Rekonquest/BrowserOS-in-progress/issues/new) with:
 - Clear description
 - Steps to reproduce
 - Expected vs actual behavior
@@ -238,7 +238,7 @@ Found a bug? [Open an issue](https://github.com/browseros-ai/BrowserOS/issues/ne
 
 ### 💡 Suggest Features
 
-Have an idea? [Share it here](https://github.com/browseros-ai/BrowserOS/issues/99) or chat with us on [Discord](https://discord.gg/YKwjt5vuKr).
+Have an idea? [Share it here](https://github.com/Rekonquest/BrowserOS-in-progress/issues/99) or chat with us on [Discord](https://discord.gg/YKwjt5vuKr).
 
 ### 📚 Improve Documentation
 
@@ -263,8 +263,8 @@ Have an idea? [Share it here](https://github.com/browseros-ai/BrowserOS/issues/9
 Stuck? Need clarification? We're here to help.
 
 - **[Discord](https://discord.gg/YKwjt5vuKr)** - Real-time chat and support
-- **[GitHub Issues](https://github.com/browseros-ai/BrowserOS/issues)** - Bug reports and features
-- **[GitHub Discussions](https://github.com/browseros-ai/BrowserOS/discussions)** - General questions
+- **[GitHub Issues](https://github.com/Rekonquest/BrowserOS-in-progress/issues)** - Bug reports and features
+- **[GitHub Discussions](https://github.com/Rekonquest/BrowserOS-in-progress/discussions)** - General questions
 
 ## Recognition
 
