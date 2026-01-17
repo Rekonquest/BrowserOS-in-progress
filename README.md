@@ -27,7 +27,7 @@
 
 🔒 Privacy first - use your own API keys or run local models with Ollama. Your data stays on your computer.
 
-💡 Join our [Discord](https://discord.gg/YKwjt5vuKr) or [Slack](https://dub.sh/browserOS-slack) and help us build! Have feature requests? [Suggest here](https://github.com/browseros-ai/BrowserOS/issues/99).
+💡 Join our [Discord](https://discord.gg/YKwjt5vuKr) or [Slack](https://dub.sh/browserOS-slack) and help us build! Have feature requests? [Suggest here](https://github.com/Rekonquest/BrowserOS-in-progress/issues/99).
 
 ## Quick start
 
@@ -119,8 +119,8 @@ Your browsing data could be used for ads or to train their models. We keep your 
 
 We'd love your help making BrowserOS better!
 
-- 🐛 [Report bugs](https://github.com/nxtscape/nxtscape/issues)
-- 💡 [Suggest features](https://github.com/browseros-ai/BrowserOS/issues/99)
+- 🐛 [Report bugs](https://github.com/Rekonquest/BrowserOS-in-progress/issues)
+- 💡 [Suggest features](https://github.com/Rekonquest/BrowserOS-in-progress/issues/99)
 - 💬 [Join Discord](https://discord.gg/YKwjt5vuKr)
 - 🐦 [Follow on Twitter](https://x.com/browserOS_ai)
 
@@ -136,7 +136,7 @@ BrowserOS is open source under the [AGPL-3.0 license](LICENSE).
 ## Stargazers
 Thank you to all our supporters!
 
-[![Star History Chart](https://api.star-history.com/svg?repos=browseros-ai/BrowserOS&type=Date)](https://www.star-history.com/#browseros-ai/BrowserOS&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Rekonquest/BrowserOS-in-progress&type=Date)](https://www.star-history.com/#Rekonquest/BrowserOS-in-progress&Date)
 
 ## 
 <p align="center">
