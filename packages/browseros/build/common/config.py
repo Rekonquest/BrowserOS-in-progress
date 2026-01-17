@@ -52,15 +52,13 @@ def load_config(config_path: Path) -> Dict[str, Any]:
 
 def validate_required_envs(required_envs: list) -> None:
     """Validate that all required environment variables are set
-    
+
     Raises SystemExit if any are missing
+
+    Uses walrus operator for concise validation.
     """
-    missing = []
-    for env_var in required_envs:
-        if not os.environ.get(env_var):
-            missing.append(env_var)
-    
-    if missing:
+    # Modern Python pattern: use walrus operator for concise validation
+    if missing := [env for env in required_envs if not os.environ.get(env)]:
         log_error("Missing required environment variables:")
         for var in missing:
             log_error(f"  - {var}")

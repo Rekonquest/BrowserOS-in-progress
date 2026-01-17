@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrowserOS Advanced Settings</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f8f9fa;
+      color: #202124;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .settings-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .settings-section {
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #e8eaed;
+    }
+
+    .section-icon {
+      font-size: 24px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #202124;
+    }
+
+    .section-description {
+      font-size: 14px;
+      color: #5f6368;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #202124;
+      margin-bottom: 8px;
+    }
+
+    .label-badge {
+      padding: 2px 6px;
+      background: #e8f0fe;
+      color: #1a73e8;
+      font-size: 11px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .form-select,
+    .form-input,
+    .form-textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #202124;
+      background: white;
+      transition: border-color 0.2s ease;
+    }
+
+    .form-select:focus,
+    .form-input:focus,
+    .form-textarea:focus {
+      outline: none;
+      border-color: #1a73e8;
+    }
+
+    .form-textarea {
+      min-height: 100px;
+      resize: vertical;
+      font-family: 'Courier New', monospace;
+    }
+
+    .form-hint {
+      font-size: 12px;
+      color: #5f6368;
+      margin-top: 6px;
+    }
+
+    .slider-container {
+      margin-top: 12px;
+    }
+
+    .slider {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #e8eaed;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #1a73e8;
+      cursor: pointer;
+    }
+
+    .slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #1a73e8;
+      cursor: pointer;
+      border: none;
+    }
+
+    .slider-value {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #5f6368;
+      margin-top: 6px;
+    }
+
+    .slider-current {
+      font-weight: 600;
+      color: #1a73e8;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      background: white;
+      color: #202124;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #f8f9fa;
+      border-color: #1a73e8;
+    }
+
+    .btn-primary {
+      background: #1a73e8;
+      color: white;
+      border-color: #1a73e8;
+    }
+
+    .btn-primary:hover {
+      background: #1765cc;
+    }
+
+    .btn-icon {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .discover-button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+    }
+
+    .discover-button:hover {
+      background: linear-gradient(135deg, #5568d3 0%, #653e8a 100%);
+    }
+
+    .models-list {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      margin-top: 12px;
+    }
+
+    .model-item {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f1f3f4;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .model-item:hover {
+      background: #f8f9fa;
+    }
+
+    .model-item:last-child {
+      border-bottom: none;
+    }
+
+    .model-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #202124;
+    }
+
+    .model-meta {
+      font-size: 12px;
+      color: #5f6368;
+    }
+
+    .model-select-btn {
+      padding: 4px 12px;
+      background: #e8f0fe;
+      color: #1a73e8;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .model-select-btn:hover {
+      background: #d2e3fc;
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .preset-card {
+      padding: 12px;
+      border: 1px solid #dadce0;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .preset-card:hover {
+      border-color: #1a73e8;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .preset-card.selected {
+      background: #e8f0fe;
+      border-color: #1a73e8;
+    }
+
+    .preset-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .preset-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #202124;
+      margin-bottom: 4px;
+    }
+
+    .preset-description {
+      font-size: 12px;
+      color: #5f6368;
+    }
+
+    .monitor-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .monitor-card {
+      padding: 16px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e8eaed 100%);
+      border-radius: 8px;
+      border: 1px solid #dadce0;
+    }
+
+    .monitor-label {
+      font-size: 12px;
+      color: #5f6368;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .monitor-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #202124;
+      margin-bottom: 8px;
+    }
+
+    .monitor-bar {
+      width: 100%;
+      height: 8px;
+      background: #e8eaed;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .monitor-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #1a73e8 0%, #667eea 100%);
+      transition: width 0.3s ease;
+    }
+
+    .monitor-bar-fill.high {
+      background: linear-gradient(90deg, #ea4335 0%, #f28b82 100%);
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #f3f4f6;
+      border-top: 2px solid #1a73e8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .status-badge.success {
+      background: #e6f4ea;
+      color: #137333;
+    }
+
+    .status-badge.error {
+      background: #fce8e6;
+      color: #c5221f;
+    }
+
+    .status-badge.warning {
+      background: #fef7e0;
+      color: #ea8600;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #202124;
+        color: #e8eaed;
+      }
+
+      .settings-section {
+        background: #2d2e31;
+      }
+
+      .section-title {
+        color: #e8eaed;
+      }
+
+      .section-description,
+      .form-hint,
+      .slider-value,
+      .model-meta,
+      .preset-description,
+      .monitor-label {
+        color: #9aa0a6;
+      }
+
+      .form-select,
+      .form-input,
+      .form-textarea {
+        background: #3c4043;
+        border-color: #5f6368;
+        color: #e8eaed;
+      }
+
+      .btn {
+        background: #3c4043;
+        border-color: #5f6368;
+        color: #e8eaed;
+      }
+
+      .btn:hover {
+        background: #5f6368;
+      }
+
+      .model-item {
+        border-bottom-color: #3c4043;
+      }
+
+      .model-item:hover,
+      .preset-card:hover {
+        background: #3c4043;
+      }
+
+      .preset-card {
+        border-color: #5f6368;
+      }
+
+      .preset-card.selected {
+        background: #1a3a52;
+        border-color: #8ab4f8;
+      }
+
+      .monitor-card {
+        background: linear-gradient(135deg, #3c4043 0%, #5f6368 100%);
+        border-color: #5f6368;
+      }
+
+      .monitor-value {
+        color: #e8eaed;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="settings-container">
+    <!-- Model Discovery Section -->
+    <div class="settings-section">
+      <div class="section-header">
+        <span class="section-icon">🔍</span>
+        <h2 class="section-title">Model Discovery</h2>
+      </div>
+      <p class="section-description">
+        Automatically discover available models from your local backends (Ollama, LM Studio, vLLM, etc.)
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">
+          Backend URL
+          <span class="label-badge">REQUIRED</span>
+        </label>
+        <input type="url" class="form-input" id="backendUrl"
+               placeholder="http://localhost:1234/v1"
+               value="http://localhost:1234/v1">
+        <div class="form-hint">Enter your local backend URL (e.g., LM Studio at localhost:1234/v1, Ollama at localhost:11434)</div>
+      </div>
+
+      <div class="button-group">
+        <button class="btn discover-button btn-icon" id="discoverBtn">
+          <span id="discoverIcon">🔎</span>
+          <span id="discoverText">Discover Models</span>
+        </button>
+      </div>
+
+      <div id="modelsListContainer" style="display: none;">
+        <div class="form-label" style="margin-top: 20px;">
+          Available Models
+          <span class="status-badge success" id="modelsCount">0 models</span>
+        </div>
+        <div class="models-list" id="modelsList"></div>
+      </div>
+    </div>
+
+    <!-- System Prompts Section -->
+    <div class="settings-section">
+      <div class="section-header">
+        <span class="section-icon">💬</span>
+        <h2 class="section-title">System Prompt Presets</h2>
+      </div>
+      <p class="section-description">
+        Choose from pre-configured system prompts for different use cases
+      </p>
+
+      <div class="preset-grid" id="systemPromptsGrid">
+        <!-- Loaded dynamically -->
+      </div>
+
+      <div class="form-group" style="margin-top: 20px;">
+        <label class="form-label">Custom System Prompt</label>
+        <textarea class="form-textarea" id="customSystemPrompt"
+                  placeholder="Enter your custom system prompt here..."></textarea>
+        <div class="form-hint">This will be sent at the beginning of every conversation</div>
+      </div>
+    </div>
+
+    <!-- Chat Templates Section -->
+    <div class="settings-section">
+      <div class="section-header">
+        <span class="section-icon">📝</span>
+        <h2 class="section-title">Chat Template Presets</h2>
+      </div>
+      <p class="section-description">
+        Select the chat template format for your model (ChatML, Llama, Mistral, etc.)
+      </p>
+
+      <div class="preset-grid" id="chatTemplatesGrid">
+        <!-- Loaded dynamically -->
+      </div>
+    </div>
+
+    <!-- Sampling Parameters Section -->
+    <div class="settings-section">
+      <div class="section-header">
+        <span class="section-icon">⚙️</span>
+        <h2 class="section-title">Sampling Parameters</h2>
+      </div>
+      <p class="section-description">
+        Fine-tune the model's output generation behavior
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">Temperature</label>
+        <div class="slider-container">
+          <input type="range" class="slider" id="temperature"
+                 min="0" max="2" step="0.05" value="0.7">
+          <div class="slider-value">
+            <span>More Focused (0.0)</span>
+            <span class="slider-current" id="temperatureValue">0.70</span>
+            <span>More Creative (2.0)</span>
+          </div>
+        </div>
+        <div class="form-hint">Controls randomness in the output. Lower = more deterministic, Higher = more creative</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Top P (Nucleus Sampling)</label>
+        <div class="slider-container">
+          <input type="range" class="slider" id="topP"
+                 min="0" max="1" step="0.05" value="0.9">
+          <div class="slider-value">
+            <span>Narrower (0.0)</span>
+            <span class="slider-current" id="topPValue">0.90</span>
+            <span>Wider (1.0)</span>
+          </div>
+        </div>
+        <div class="form-hint">Consider only tokens with cumulative probability up to this threshold</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Min P</label>
+        <div class="slider-container">
+          <input type="range" class="slider" id="minP"
+                 min="0" max="1" step="0.05" value="0.05">
+          <div class="slider-value">
+            <span>More Strict (0.0)</span>
+            <span class="slider-current" id="minPValue">0.05</span>
+            <span>More Lenient (1.0)</span>
+          </div>
+        </div>
+        <div class="form-hint">Minimum probability threshold for token selection</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Repeat Penalty</label>
+        <div class="slider-container">
+          <input type="range" class="slider" id="repeatPenalty"
+                 min="1" max="2" step="0.05" value="1.1">
+          <div class="slider-value">
+            <span>No Penalty (1.0)</span>
+            <span class="slider-current" id="repeatPenaltyValue">1.10</span>
+            <span>Strong Penalty (2.0)</span>
+          </div>
+        </div>
+        <div class="form-hint">Penalize repeated tokens to reduce repetition in output</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Maximum Response Length (tokens)</label>
+        <input type="number" class="form-input" id="maxTokens"
+               min="1" max="128000" value="2048" step="64">
+        <div class="form-hint">Maximum number of tokens in the model's response</div>
+      </div>
+    </div>
+
+    <!-- System Monitoring Section -->
+    <div class="settings-section">
+      <div class="section-header">
+        <span class="section-icon">📊</span>
+        <h2 class="section-title">System Monitoring</h2>
+      </div>
+      <p class="section-description">
+        Real-time system resource usage
+      </p>
+
+      <div class="monitor-grid">
+        <div class="monitor-card">
+          <div class="monitor-label">CPU Usage</div>
+          <div class="monitor-value" id="cpuValue">--%</div>
+          <div class="monitor-bar">
+            <div class="monitor-bar-fill" id="cpuBar" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="monitor-card">
+          <div class="monitor-label">RAM Usage</div>
+          <div class="monitor-value" id="ramValue">--%</div>
+          <div class="monitor-bar">
+            <div class="monitor-bar-fill" id="ramBar" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="monitor-card">
+          <div class="monitor-label">GPU Usage</div>
+          <div class="monitor-value" id="gpuValue">--%</div>
+          <div class="monitor-bar">
+            <div class="monitor-bar-fill" id="gpuBar" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="monitor-card">
+          <div class="monitor-label">GPU Memory</div>
+          <div class="monitor-value" id="vramValue">--%</div>
+          <div class="monitor-bar">
+            <div class="monitor-bar-fill" id="vramBar" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-hint" style="margin-top: 12px;">
+        Note: System monitoring requires native integration. Values shown are simulated if not available.
+      </div>
+    </div>
+
+    <!-- Save Section -->
+    <div class="settings-section">
+      <div class="button-group">
+        <button class="btn">Reset to Defaults</button>
+        <button class="btn btn-primary">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // System Prompt Presets (loaded from presets/system_prompts.json)
+    const systemPromptPresets = [
+      {
+        id: 'default',
+        name: 'Default Assistant',
+        description: 'Helpful, harmless, and honest',
+        icon: '💬',
+        prompt: 'You are a helpful, harmless, and honest AI assistant.'
+      },
+      {
+        id: 'coding',
+        name: 'Code Expert',
+        description: 'Expert programmer',
+        icon: '💻',
+        prompt: 'You are an expert programmer. Provide clean, well-documented code with best practices.'
+      },
+      {
+        id: 'teacher',
+        name: 'Patient Teacher',
+        description: 'Educational explainer',
+        icon: '🎓',
+        prompt: 'You are a patient teacher. Explain concepts clearly using analogies and examples.'
+      },
+      {
+        id: 'concise',
+        name: 'Concise Mode',
+        description: 'Brief responses',
+        icon: '⚡',
+        prompt: 'Provide brief, direct answers without unnecessary elaboration.'
+      },
+    ];
+
+    // Chat Template Presets (loaded from presets/chat_templates.json)
+    const chatTemplatePresets = [
+      { id: 'chatml', name: 'ChatML', description: 'OpenAI GPT-3.5/4', icon: '💬' },
+      { id: 'llama2', name: 'Llama 2', description: 'Meta Llama 2', icon: '🦙' },
+      { id: 'llama3', name: 'Llama 3', description: 'Meta Llama 3', icon: '🦙' },
+      { id: 'mistral', name: 'Mistral', description: 'Mistral Instruct', icon: '🌬️' },
+      { id: 'gemma', name: 'Gemma', description: 'Google Gemma', icon: '💎' },
+      { id: 'phi', name: 'Phi-3', description: 'Microsoft Phi-3', icon: 'Φ' },
+    ];
+
+    // State
+    let selectedSystemPrompt = 'default';
+    let selectedChatTemplate = 'chatml';
+
+    // Initialize
+    function init() {
+      renderSystemPrompts();
+      renderChatTemplates();
+      setupSliders();
+      setupMonitoring();
+      setupDiscovery();
+      startAutoDetection(); // Auto-detect backends every 10 seconds
+    }
+
+    // Auto-Detection: Automatically discover models when backends are running
+    let autoDetectionInterval = null;
+    let lastDetectionTime = 0;
+
+    function startAutoDetection() {
+      // Run immediately on page load
+      autoDetectModels();
+
+      // Then check every 10 seconds
+      if (autoDetectionInterval) {
+        clearInterval(autoDetectionInterval);
+      }
+      autoDetectionInterval = setInterval(autoDetectModels, 10000);
+    }
+
+    async function autoDetectModels() {
+      const now = Date.now();
+      // Prevent multiple concurrent requests
+      if (now - lastDetectionTime < 5000) {
+        return;
+      }
+      lastDetectionTime = now;
+
+      try {
+        // Get the backend URL input value
+        const urlInput = document.getElementById('backendUrl');
+        const url = urlInput ? urlInput.value : '';
+
+        // Silently discover models in background
+        const models = await discoverModels(url);
+
+        // Only update if we found models
+        if (models && models.length > 0 && models[0].name !== 'No models found') {
+          displayModels(models);
+
+          // Show a subtle notification (don't use alert)
+          console.log(`Auto-detected ${models.length} models from backend`);
+        }
+      } catch (error) {
+        // Silently fail - don't show errors during auto-detection
+        console.log('Auto-detection: No backends available');
+      }
+    }
+
+    // Render System Prompts
+    function renderSystemPrompts() {
+      const grid = document.getElementById('systemPromptsGrid');
+      grid.innerHTML = systemPromptPresets.map(preset => `
+        <div class="preset-card ${preset.id === selectedSystemPrompt ? 'selected' : ''}"
+             data-preset-id="${preset.id}"
+             onclick="selectSystemPrompt('${preset.id}')">
+          <div class="preset-icon">${preset.icon}</div>
+          <div class="preset-name">${preset.name}</div>
+          <div class="preset-description">${preset.description}</div>
+        </div>
+      `).join('');
+    }
+
+    // Render Chat Templates
+    function renderChatTemplates() {
+      const grid = document.getElementById('chatTemplatesGrid');
+      grid.innerHTML = chatTemplatePresets.map(preset => `
+        <div class="preset-card ${preset.id === selectedChatTemplate ? 'selected' : ''}"
+             data-template-id="${preset.id}"
+             onclick="selectChatTemplate('${preset.id}')">
+          <div class="preset-icon">${preset.icon}</div>
+          <div class="preset-name">${preset.name}</div>
+          <div class="preset-description">${preset.description}</div>
+        </div>
+      `).join('');
+    }
+
+    // Select System Prompt
+    function selectSystemPrompt(id) {
+      selectedSystemPrompt = id;
+      const preset = systemPromptPresets.find(p => p.id === id);
+      if (preset) {
+        document.getElementById('customSystemPrompt').value = preset.prompt;
+      }
+      renderSystemPrompts();
+    }
+
+    // Select Chat Template
+    function selectChatTemplate(id) {
+      selectedChatTemplate = id;
+      renderChatTemplates();
+    }
+
+    // Setup Sliders
+    function setupSliders() {
+      const sliders = [
+        { id: 'temperature', valueId: 'temperatureValue', format: v => v.toFixed(2) },
+        { id: 'topP', valueId: 'topPValue', format: v => v.toFixed(2) },
+        { id: 'minP', valueId: 'minPValue', format: v => v.toFixed(2) },
+        { id: 'repeatPenalty', valueId: 'repeatPenaltyValue', format: v => v.toFixed(2) },
+      ];
+
+      sliders.forEach(({ id, valueId, format }) => {
+        const slider = document.getElementById(id);
+        const value = document.getElementById(valueId);
+
+        slider.addEventListener('input', (e) => {
+          value.textContent = format(parseFloat(e.target.value));
+        });
+      });
+    }
+
+    // Setup Monitoring
+    function setupMonitoring() {
+      // Show "Not Available" for system monitoring (requires native system access)
+      // In a real browser integration, this would fetch actual system stats
+      updateMonitor('cpu', 0, 'N/A');
+      updateMonitor('ram', 0, 'N/A');
+      updateMonitor('gpu', 0, 'N/A');
+      updateMonitor('vram', 0, 'N/A');
+
+      // Note: System monitoring disabled in demo mode
+      // Would require native system integration or backend API
+    }
+
+    function updateMonitor(type, percentage, text) {
+      const valueEl = document.getElementById(`${type}Value`);
+      const barEl = document.getElementById(`${type}Bar`);
+
+      // If text is provided (like "N/A"), use that instead of percentage
+      if (text) {
+        valueEl.textContent = text;
+        barEl.style.width = '0%';
+        barEl.classList.remove('high');
+      } else {
+        valueEl.textContent = `${Math.round(percentage)}%`;
+        barEl.style.width = `${percentage}%`;
+
+        if (percentage > 80) {
+          barEl.classList.add('high');
+        } else {
+          barEl.classList.remove('high');
+        }
+      }
+    }
+
+    // Setup Discovery
+    function setupDiscovery() {
+      document.getElementById('discoverBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('discoverBtn');
+        const icon = document.getElementById('discoverIcon');
+        const text = document.getElementById('discoverText');
+        const url = document.getElementById('backendUrl').value;
+
+        // Show loading
+        btn.disabled = true;
+        icon.innerHTML = '<span class="loading-spinner"></span>';
+        text.textContent = 'Discovering...';
+
+        try {
+          const models = await discoverModels(url);
+          displayModels(models);
+        } catch (error) {
+          alert(`Discovery failed: ${error.message}`);
+        } finally {
+          btn.disabled = false;
+          icon.textContent = '🔎';
+          text.textContent = 'Discover Models';
+        }
+      });
+    }
+
+    async function discoverModels(url) {
+      // Call the real backend API
+      try {
+        const response = await fetch('/api/discover');
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || 'Discovery failed');
+        }
+
+        // Convert backend models to display format
+        const models = [];
+        for (const backend of data.backends) {
+          // Only include models from the specified URL or all if URL matches backend
+          if (!url || backend.url.includes(url) || url.includes('localhost') || url.includes('127.0.0.1')) {
+            for (const model of backend.models) {
+              models.push({
+                name: model.model_id,
+                size: model.parameter_count || '?',
+                quant: model.quantization || '?',
+                backend: backend.name
+              });
+            }
+          }
+        }
+
+        return models.length > 0 ? models : [{ name: 'No models found', size: '', quant: '', backend: '' }];
+      } catch (error) {
+        console.error('Model discovery error:', error);
+        throw error;
+      }
+    }
+
+    function displayModels(models) {
+      const container = document.getElementById('modelsListContainer');
+      const list = document.getElementById('modelsList');
+      const count = document.getElementById('modelsCount');
+
+      container.style.display = 'block';
+      count.textContent = `${models.length} models`;
+
+      list.innerHTML = models.map(model => `
+        <div class="model-item">
+          <div>
+            <div class="model-name">${model.name}</div>
+            <div class="model-meta">${model.size}${model.quant !== '?' ? ' • ' + model.quant : ''}${model.backend ? ' • ' + model.backend : ''}</div>
+          </div>
+          <button class="model-select-btn" onclick="selectModel('${model.name}')">
+            Use Model
+          </button>
+        </div>
+      `).join('');
+    }
+
+    async function selectModel(modelName) {
+      try {
+        // Get the backend URL
+        const urlInput = document.getElementById('backendUrl');
+        let backendUrl = urlInput ? urlInput.value.trim() : 'http://localhost:1234/v1';
+
+        // Ensure URL ends with /v1 for LM Studio
+        if (backendUrl.includes(':1234') && !backendUrl.endsWith('/v1')) {
+          backendUrl = backendUrl + '/v1';
+        }
+
+        // Remove trailing slash if present before /v1
+        backendUrl = backendUrl.replace(/\/+$/, '');
+
+        // Call API to select model
+        const response = await fetch('/api/select-model', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            model_id: modelName,
+            backend_url: backendUrl
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Show success message
+          alert(`✓ Model selected: ${modelName}\n\nBackend: ${backendUrl}\n\nRedirecting to chat...`);
+
+          // Redirect to chat interface
+          window.location.href = '/chat';
+        } else {
+          alert(`✗ Error selecting model: ${data.error}`);
+        }
+      } catch (error) {
+        alert(`✗ Error: ${error.message}`);
+      }
+    }
+
+    // Initialize on load
+    init();
+
+    // Public API
+    window.BrowserOSAdvancedSettings = {
+      getSettings: () => ({
+        systemPrompt: document.getElementById('customSystemPrompt').value,
+        chatTemplate: selectedChatTemplate,
+        temperature: parseFloat(document.getElementById('temperature').value),
+        topP: parseFloat(document.getElementById('topP').value),
+        minP: parseFloat(document.getElementById('minP').value),
+        repeatPenalty: parseFloat(document.getElementById('repeatPenalty').value),
+        maxTokens: parseInt(document.getElementById('maxTokens').value),
+      }),
+      setSettings: (settings) => {
+        if (settings.systemPrompt) document.getElementById('customSystemPrompt').value = settings.systemPrompt;
+        if (settings.chatTemplate) selectChatTemplate(settings.chatTemplate);
+        if (settings.temperature !== undefined) document.getElementById('temperature').value = settings.temperature;
+        if (settings.topP !== undefined) document.getElementById('topP').value = settings.topP;
+        if (settings.minP !== undefined) document.getElementById('minP').value = settings.minP;
+        if (settings.repeatPenalty !== undefined) document.getElementById('repeatPenalty').value = settings.repeatPenalty;
+        if (settings.maxTokens !== undefined) document.getElementById('maxTokens').value = settings.maxTokens;
+      }
+    };
+
+    console.log('[BrowserOS Advanced Settings] Ready');
+  </script>
+</body>
+</html>

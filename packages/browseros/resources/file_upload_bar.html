@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrowserOS File Upload Bar</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: transparent;
+      overflow: hidden;
+    }
+
+    .upload-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95));
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      z-index: 10000;
+    }
+
+    .upload-bar.hidden {
+      transform: translateY(100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .upload-bar.drag-over {
+      background: linear-gradient(to top, rgba(66, 133, 244, 0.1), rgba(66, 133, 244, 0.05));
+      border-top-color: rgba(66, 133, 244, 0.5);
+    }
+
+    .upload-button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.2s ease, transform 0.1s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .upload-button:hover {
+      background: #3367d6;
+      transform: translateY(-1px);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .upload-button:active {
+      transform: translateY(0);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .upload-button svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    .file-list {
+      flex: 1;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      align-items: center;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+    }
+
+    .file-list::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .file-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .file-list::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 3px;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: white;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      min-width: 150px;
+      max-width: 250px;
+      position: relative;
+      transition: transform 0.2s ease;
+    }
+
+    .file-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .file-item.image {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 8px;
+    }
+
+    .file-preview {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .file-icon {
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+    }
+
+    .file-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .file-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: #202124;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-size {
+      font-size: 11px;
+      color: #5f6368;
+    }
+
+    .file-remove {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .file-remove:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    .file-remove svg {
+      width: 16px;
+      height: 16px;
+      color: #5f6368;
+    }
+
+    .drop-zone {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(66, 133, 244, 0.1);
+      backdrop-filter: blur(5px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      pointer-events: none;
+    }
+
+    .drop-zone.active {
+      display: flex;
+    }
+
+    .drop-zone-content {
+      background: white;
+      border: 3px dashed #4285f4;
+      border-radius: 16px;
+      padding: 48px;
+      text-align: center;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .drop-zone-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      color: #4285f4;
+    }
+
+    .drop-zone-text {
+      font-size: 20px;
+      font-weight: 600;
+      color: #202124;
+      margin-bottom: 8px;
+    }
+
+    .drop-zone-hint {
+      font-size: 14px;
+      color: #5f6368;
+    }
+
+    .clear-all-button {
+      padding: 8px 12px;
+      background: white;
+      color: #5f6368;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .clear-all-button:hover {
+      background: #f8f9fa;
+      border-color: rgba(0, 0, 0, 0.2);
+      color: #202124;
+    }
+
+    .toggle-button {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      width: 48px;
+      height: 48px;
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      transition: all 0.2s ease;
+      z-index: 10001;
+    }
+
+    .toggle-button:hover {
+      background: #3367d6;
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .toggle-button svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .upload-status {
+      font-size: 12px;
+      color: #5f6368;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .upload-bar {
+        background: linear-gradient(to top, rgba(32, 33, 36, 0.98), rgba(32, 33, 36, 0.95));
+        border-top-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .file-item {
+        background: #2d2e31;
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .file-name {
+        color: #e8eaed;
+      }
+
+      .file-size, .file-remove svg, .upload-status {
+        color: #9aa0a6;
+      }
+
+      .clear-all-button {
+        background: #2d2e31;
+        border-color: rgba(255, 255, 255, 0.1);
+        color: #9aa0a6;
+      }
+
+      .clear-all-button:hover {
+        background: #3c4043;
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #e8eaed;
+      }
+
+      .drop-zone-content {
+        background: #2d2e31;
+        border-color: #4285f4;
+      }
+
+      .drop-zone-text {
+        color: #e8eaed;
+      }
+
+      .drop-zone-hint {
+        color: #9aa0a6;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Drop Zone Overlay -->
+  <div class="drop-zone" id="dropZone">
+    <div class="drop-zone-content">
+      <svg class="drop-zone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+      </svg>
+      <div class="drop-zone-text">Drop files here</div>
+      <div class="drop-zone-hint">Images, PDFs, documents, and code files supported</div>
+    </div>
+  </div>
+
+  <!-- Upload Bar -->
+  <div class="upload-bar" id="uploadBar">
+    <button class="upload-button" id="uploadButton">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+      </svg>
+      <span>Upload Files</span>
+    </button>
+    <input type="file" class="file-input" id="fileInput" multiple accept="image/*,.pdf,.txt,.md,.json,.xml,.csv,.doc,.docx,.xls,.xlsx,.py,.js,.ts,.java,.cpp,.c,.h,.css,.html,.go,.rs,.rb,.php,.sh,.yml,.yaml">
+
+    <div class="file-list" id="fileList">
+      <div class="upload-status">
+        <span id="fileCount">No files selected</span>
+      </div>
+    </div>
+
+    <button class="clear-all-button" id="clearAllButton" style="display: none;">Clear All</button>
+  </div>
+
+  <!-- Toggle Button -->
+  <button class="toggle-button" id="toggleButton" title="Toggle file upload bar">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+    </svg>
+  </button>
+
+  <script>
+    // State management
+    const state = {
+      files: [],
+      isBarVisible: true,
+      isDragging: false,
+    };
+
+    // DOM elements
+    const uploadBar = document.getElementById('uploadBar');
+    const uploadButton = document.getElementById('uploadButton');
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+    const fileCount = document.getElementById('fileCount');
+    const clearAllButton = document.getElementById('clearAllButton');
+    const dropZone = document.getElementById('dropZone');
+    const toggleButton = document.getElementById('toggleButton');
+
+    // File type icons (SVG paths)
+    const fileIcons = {
+      image: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`,
+      pdf: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>`,
+      document: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>`,
+      code: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>`,
+    };
+
+    // Utility functions
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    function getFileType(file) {
+      if (file.type.startsWith('image/')) return 'image';
+      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) return 'pdf';
+      if (file.type.startsWith('text/') || ['.txt', '.md', '.json', '.xml', '.csv', '.yml', '.yaml'].some(ext => file.name.endsWith(ext))) return 'document';
+      if (['.py', '.js', '.ts', '.java', '.cpp', '.c', '.h', '.css', '.html', '.go', '.rs', '.rb', '.php', '.sh'].some(ext => file.name.endsWith(ext))) return 'code';
+      return 'document';
+    }
+
+    function getFileIcon(fileType) {
+      return fileIcons[fileType] || fileIcons.document;
+    }
+
+    // Read file as Data URL for preview/upload
+    function readFileAsDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Read file as text for text files
+    function readFileAsText(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+    }
+
+    // Add files to the list
+    async function addFiles(newFiles) {
+      const filesArray = Array.from(newFiles);
+
+      for (const file of filesArray) {
+        // Check if file already exists
+        if (state.files.some(f => f.file.name === file.name && f.file.size === file.size)) {
+          continue;
+        }
+
+        const fileType = getFileType(file);
+        const fileData = {
+          file,
+          type: fileType,
+          id: Date.now() + Math.random(),
+        };
+
+        // Read preview for images
+        if (fileType === 'image') {
+          fileData.preview = await readFileAsDataURL(file);
+        }
+
+        state.files.push(fileData);
+      }
+
+      renderFileList();
+      notifyFileChange();
+    }
+
+    // Remove file from the list
+    function removeFile(fileId) {
+      state.files = state.files.filter(f => f.id !== fileId);
+      renderFileList();
+      notifyFileChange();
+    }
+
+    // Clear all files
+    function clearAllFiles() {
+      state.files = [];
+      renderFileList();
+      notifyFileChange();
+    }
+
+    // Render file list
+    function renderFileList() {
+      // Clear existing items
+      fileList.innerHTML = '';
+
+      if (state.files.length === 0) {
+        fileList.innerHTML = '<div class="upload-status"><span>No files selected</span></div>';
+        clearAllButton.style.display = 'none';
+        return;
+      }
+
+      // Update file count
+      const countEl = document.createElement('div');
+      countEl.className = 'upload-status';
+      countEl.innerHTML = `<span>${state.files.length} file${state.files.length > 1 ? 's' : ''} selected</span>`;
+      fileList.appendChild(countEl);
+
+      // Add file items
+      state.files.forEach(fileData => {
+        const fileItem = document.createElement('div');
+        fileItem.className = `file-item ${fileData.type}`;
+
+        if (fileData.type === 'image' && fileData.preview) {
+          fileItem.innerHTML = `
+            <img src="${fileData.preview}" alt="${fileData.file.name}" class="file-preview">
+            <div class="file-info">
+              <div class="file-name" title="${fileData.file.name}">${fileData.file.name}</div>
+              <div class="file-size">${formatFileSize(fileData.file.size)}</div>
+            </div>
+            <button class="file-remove" data-file-id="${fileData.id}" title="Remove file">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          `;
+        } else {
+          fileItem.innerHTML = `
+            <div class="file-icon">${getFileIcon(fileData.type)}</div>
+            <div class="file-info">
+              <div class="file-name" title="${fileData.file.name}">${fileData.file.name}</div>
+              <div class="file-size">${formatFileSize(fileData.file.size)}</div>
+            </div>
+            <button class="file-remove" data-file-id="${fileData.id}" title="Remove file">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          `;
+        }
+
+        fileList.appendChild(fileItem);
+      });
+
+      clearAllButton.style.display = state.files.length > 0 ? 'block' : 'none';
+    }
+
+    // Notify parent/host about file changes
+    function notifyFileChange() {
+      const fileData = state.files.map(f => ({
+        name: f.file.name,
+        size: f.file.size,
+        type: f.file.type,
+        fileType: f.type,
+      }));
+
+      // Post message to parent window
+      if (window.parent !== window) {
+        window.parent.postMessage({
+          type: 'browseros:files-changed',
+          files: fileData,
+          count: state.files.length,
+        }, '*');
+      }
+
+      // Dispatch custom event
+      window.dispatchEvent(new CustomEvent('filesChanged', {
+        detail: { files: state.files, count: state.files.length }
+      }));
+
+      // Log to console for debugging
+      console.log('[BrowserOS File Upload] Files changed:', fileData);
+    }
+
+    // Toggle upload bar visibility
+    function toggleUploadBar() {
+      state.isBarVisible = !state.isBarVisible;
+      if (state.isBarVisible) {
+        uploadBar.classList.remove('hidden');
+      } else {
+        uploadBar.classList.add('hidden');
+      }
+    }
+
+    // Event listeners
+    uploadButton.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        addFiles(e.target.files);
+      }
+      // Reset input to allow selecting the same file again
+      e.target.value = '';
+    });
+
+    fileList.addEventListener('click', (e) => {
+      const removeButton = e.target.closest('.file-remove');
+      if (removeButton) {
+        const fileId = parseFloat(removeButton.getAttribute('data-file-id'));
+        removeFile(fileId);
+      }
+    });
+
+    clearAllButton.addEventListener('click', clearAllFiles);
+
+    toggleButton.addEventListener('click', toggleUploadBar);
+
+    // Drag and drop
+    let dragCounter = 0;
+
+    document.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      dragCounter++;
+      if (dragCounter === 1) {
+        dropZone.classList.add('active');
+        uploadBar.classList.add('drag-over');
+      }
+    });
+
+    document.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dragCounter--;
+      if (dragCounter === 0) {
+        dropZone.classList.remove('active');
+        uploadBar.classList.remove('drag-over');
+      }
+    });
+
+    document.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    document.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dragCounter = 0;
+      dropZone.classList.remove('active');
+      uploadBar.classList.remove('drag-over');
+
+      if (e.dataTransfer.files.length > 0) {
+        addFiles(e.dataTransfer.files);
+      }
+    });
+
+    // Public API
+    window.BrowserOSFileUpload = {
+      addFiles,
+      removeFile,
+      clearAllFiles,
+      getFiles: () => state.files,
+      getFileCount: () => state.files.length,
+      toggleBar: toggleUploadBar,
+      showBar: () => {
+        state.isBarVisible = true;
+        uploadBar.classList.remove('hidden');
+      },
+      hideBar: () => {
+        state.isBarVisible = false;
+        uploadBar.classList.add('hidden');
+      },
+    };
+
+    // Notify ready
+    console.log('[BrowserOS File Upload] Component ready');
+    window.dispatchEvent(new Event('fileUploadReady'));
+
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'browseros:file-upload-ready' }, '*');
+    }
+  </script>
+</body>
+</html>

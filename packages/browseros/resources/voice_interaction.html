@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrowserOS Voice Interaction</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: transparent;
+      overflow: hidden;
+    }
+
+    .voice-button {
+      position: fixed;
+      bottom: 80px;
+      right: 80px;
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+      transition: all 0.3s ease;
+      z-index: 10002;
+    }
+
+    .voice-button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 24px rgba(102, 126, 234, 0.6);
+    }
+
+    .voice-button:active {
+      transform: scale(0.95);
+    }
+
+    .voice-button.recording {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      animation: pulse-recording 1.5s ease-in-out infinite;
+    }
+
+    .voice-button.processing {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      animation: spin 1s linear infinite;
+    }
+
+    .voice-button svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    @keyframes pulse-recording {
+      0%, 100% {
+        box-shadow: 0 4px 16px rgba(245, 87, 108, 0.4);
+      }
+      50% {
+        box-shadow: 0 8px 32px rgba(245, 87, 108, 0.8), 0 0 0 8px rgba(245, 87, 108, 0.2);
+      }
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .voice-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10001;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .voice-modal.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .voice-modal-content {
+      background: white;
+      border-radius: 24px;
+      padding: 40px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(30px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .voice-modal-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 24px;
+      color: #667eea;
+    }
+
+    .voice-modal-icon.recording {
+      color: #f5576c;
+      animation: pulse-scale 1.5s ease-in-out infinite;
+    }
+
+    .voice-modal-icon.processing {
+      color: #4facfe;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes pulse-scale {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.1);
+      }
+    }
+
+    .voice-modal-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #202124;
+      margin-bottom: 12px;
+    }
+
+    .voice-modal-text {
+      font-size: 16px;
+      color: #5f6368;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .voice-modal-transcript {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+      font-size: 15px;
+      color: #202124;
+      min-height: 60px;
+      max-height: 200px;
+      overflow-y: auto;
+      text-align: left;
+      line-height: 1.6;
+    }
+
+    .voice-modal-transcript:empty::before {
+      content: 'Listening...';
+      color: #9aa0a6;
+      font-style: italic;
+    }
+
+    .voice-modal-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .voice-modal-button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .voice-modal-button.primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .voice-modal-button.primary:hover {
+      background: #5568d3;
+    }
+
+    .voice-modal-button.secondary {
+      background: #f8f9fa;
+      color: #5f6368;
+    }
+
+    .voice-modal-button.secondary:hover {
+      background: #e8eaed;
+    }
+
+    .voice-settings {
+      position: fixed;
+      bottom: 80px;
+      right: 156px;
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 280px;
+      z-index: 10003;
+    }
+
+    .voice-settings.active {
+      display: flex;
+    }
+
+    .voice-setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .voice-setting-label {
+      font-size: 14px;
+      color: #202124;
+      font-weight: 500;
+    }
+
+    .voice-setting-select {
+      padding: 6px 12px;
+      border: 1px solid #dadce0;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #202124;
+      cursor: pointer;
+    }
+
+    .voice-setting-toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: #dadce0;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .voice-setting-toggle.active {
+      background: #667eea;
+    }
+
+    .voice-setting-toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: left 0.2s ease;
+    }
+
+    .voice-setting-toggle.active::after {
+      left: 22px;
+    }
+
+    .waveform {
+      display: flex;
+      gap: 3px;
+      justify-content: center;
+      align-items: center;
+      height: 40px;
+      margin: 16px 0;
+    }
+
+    .waveform-bar {
+      width: 4px;
+      background: #667eea;
+      border-radius: 2px;
+      animation: wave 1s ease-in-out infinite;
+    }
+
+    .waveform-bar:nth-child(1) { animation-delay: 0s; }
+    .waveform-bar:nth-child(2) { animation-delay: 0.1s; }
+    .waveform-bar:nth-child(3) { animation-delay: 0.2s; }
+    .waveform-bar:nth-child(4) { animation-delay: 0.3s; }
+    .waveform-bar:nth-child(5) { animation-delay: 0.4s; }
+
+    @keyframes wave {
+      0%, 100% { height: 10px; }
+      50% { height: 30px; }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .voice-modal-content {
+        background: #2d2e31;
+      }
+
+      .voice-modal-title {
+        color: #e8eaed;
+      }
+
+      .voice-modal-text {
+        color: #9aa0a6;
+      }
+
+      .voice-modal-transcript {
+        background: #3c4043;
+        color: #e8eaed;
+      }
+
+      .voice-modal-button.secondary {
+        background: #3c4043;
+        color: #9aa0a6;
+      }
+
+      .voice-modal-button.secondary:hover {
+        background: #5f6368;
+      }
+
+      .voice-settings {
+        background: #2d2e31;
+      }
+
+      .voice-setting-label {
+        color: #e8eaed;
+      }
+
+      .voice-setting-select {
+        background: #3c4043;
+        border-color: #5f6368;
+        color: #e8eaed;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Voice Button -->
+  <button class="voice-button" id="voiceButton" title="Voice input (V)">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+    </svg>
+  </button>
+
+  <!-- Voice Modal -->
+  <div class="voice-modal" id="voiceModal">
+    <div class="voice-modal-content">
+      <svg class="voice-modal-icon" id="modalIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+      </svg>
+
+      <div class="voice-modal-title" id="modalTitle">Speak now</div>
+      <div class="voice-modal-text" id="modalText">Click "Stop" when you're finished speaking</div>
+
+      <div class="waveform" id="waveform">
+        <div class="waveform-bar"></div>
+        <div class="waveform-bar"></div>
+        <div class="waveform-bar"></div>
+        <div class="waveform-bar"></div>
+        <div class="waveform-bar"></div>
+      </div>
+
+      <div class="voice-modal-transcript" id="transcript"></div>
+
+      <div class="voice-modal-buttons">
+        <button class="voice-modal-button secondary" id="cancelButton">Cancel</button>
+        <button class="voice-modal-button primary" id="stopButton">Stop & Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Voice Settings (Optional) -->
+  <div class="voice-settings" id="voiceSettings">
+    <div class="voice-setting-item">
+      <span class="voice-setting-label">Language</span>
+      <select class="voice-setting-select" id="languageSelect">
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="es-ES">Spanish</option>
+        <option value="fr-FR">French</option>
+        <option value="de-DE">German</option>
+        <option value="it-IT">Italian</option>
+        <option value="pt-BR">Portuguese (BR)</option>
+        <option value="zh-CN">Chinese</option>
+        <option value="ja-JP">Japanese</option>
+        <option value="ko-KR">Korean</option>
+      </select>
+    </div>
+
+    <div class="voice-setting-item">
+      <span class="voice-setting-label">Continuous</span>
+      <div class="voice-setting-toggle" id="continuousToggle"></div>
+    </div>
+
+    <div class="voice-setting-item">
+      <span class="voice-setting-label">Interim Results</span>
+      <div class="voice-setting-toggle active" id="interimToggle"></div>
+    </div>
+  </div>
+
+  <script>
+    // State management
+    const state = {
+      isRecording: false,
+      isProcessing: false,
+      recognition: null,
+      transcript: '',
+      language: 'en-US',
+      continuous: false,
+      interimResults: true,
+      mediaRecorder: null,
+      audioChunks: [],
+    };
+
+    // DOM elements
+    const voiceButton = document.getElementById('voiceButton');
+    const voiceModal = document.getElementById('voiceModal');
+    const modalIcon = document.getElementById('modalIcon');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalText = document.getElementById('modalText');
+    const transcript = document.getElementById('transcript');
+    const waveform = document.getElementById('waveform');
+    const cancelButton = document.getElementById('cancelButton');
+    const stopButton = document.getElementById('stopButton');
+    const voiceSettings = document.getElementById('voiceSettings');
+    const languageSelect = document.getElementById('languageSelect');
+    const continuousToggle = document.getElementById('continuousToggle');
+    const interimToggle = document.getElementById('interimToggle');
+
+    // Check for Web Speech API support
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const hasSpeechRecognition = !!SpeechRecognition;
+
+    // Initialize Speech Recognition
+    function initializeSpeechRecognition() {
+      if (!hasSpeechRecognition) {
+        console.warn('[BrowserOS Voice] Web Speech API not supported. Falling back to MediaRecorder.');
+        return null;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = state.language;
+      recognition.continuous = state.continuous;
+      recognition.interimResults = state.interimResults;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        console.log('[BrowserOS Voice] Recognition started');
+        state.isRecording = true;
+        updateUI();
+      };
+
+      recognition.onresult = (event) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            finalTranscript += result[0].transcript + ' ';
+          } else {
+            interimTranscript += result[0].transcript;
+          }
+        }
+
+        if (finalTranscript) {
+          state.transcript += finalTranscript;
+        }
+
+        transcript.textContent = state.transcript + interimTranscript;
+      };
+
+      recognition.onerror = (event) => {
+        console.error('[BrowserOS Voice] Recognition error:', event.error);
+        handleError(event.error);
+      };
+
+      recognition.onend = () => {
+        console.log('[BrowserOS Voice] Recognition ended');
+        if (state.isRecording) {
+          // If still in recording state, restart
+          if (state.continuous) {
+            recognition.start();
+          } else {
+            stopRecording();
+          }
+        }
+      };
+
+      return recognition;
+    }
+
+    // Initialize MediaRecorder for browsers without Web Speech API
+    async function initializeMediaRecorder() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            state.audioChunks.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(state.audioChunks, { type: 'audio/webm' });
+          state.audioChunks = [];
+
+          // Convert to base64 for sending
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64Audio = reader.result.split(',')[1];
+            handleAudioRecording(base64Audio);
+          };
+          reader.readAsDataURL(audioBlob);
+
+          // Stop all tracks
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        return mediaRecorder;
+      } catch (error) {
+        console.error('[BrowserOS Voice] MediaRecorder error:', error);
+        alert('Microphone access denied. Please allow microphone access to use voice input.');
+        return null;
+      }
+    }
+
+    // Start recording
+    async function startRecording() {
+      state.transcript = '';
+      transcript.textContent = '';
+      voiceModal.classList.add('active');
+
+      if (hasSpeechRecognition) {
+        state.recognition = initializeSpeechRecognition();
+        if (state.recognition) {
+          state.recognition.start();
+        }
+      } else {
+        state.mediaRecorder = await initializeMediaRecorder();
+        if (state.mediaRecorder) {
+          state.mediaRecorder.start();
+          state.isRecording = true;
+          updateUI();
+          modalText.textContent = 'Recording audio... Click "Stop" when finished.';
+        }
+      }
+    }
+
+    // Stop recording
+    function stopRecording() {
+      state.isRecording = false;
+
+      if (state.recognition) {
+        state.recognition.stop();
+        state.recognition = null;
+      }
+
+      if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+        state.mediaRecorder.stop();
+      }
+
+      if (state.transcript.trim()) {
+        sendTranscript(state.transcript.trim());
+      }
+
+      voiceModal.classList.remove('active');
+      updateUI();
+    }
+
+    // Cancel recording
+    function cancelRecording() {
+      state.isRecording = false;
+      state.transcript = '';
+
+      if (state.recognition) {
+        state.recognition.stop();
+        state.recognition = null;
+      }
+
+      if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+        state.mediaRecorder.stop();
+      }
+
+      voiceModal.classList.remove('active');
+      updateUI();
+    }
+
+    // Handle audio recording (for browsers without Web Speech API)
+    function handleAudioRecording(base64Audio) {
+      // Send audio to parent window for processing
+      notifyVoiceInput({
+        type: 'audio',
+        data: base64Audio,
+        format: 'webm',
+      });
+    }
+
+    // Send transcript to parent window
+    function sendTranscript(text) {
+      notifyVoiceInput({
+        type: 'text',
+        data: text,
+      });
+    }
+
+    // Notify parent window about voice input
+    function notifyVoiceInput(data) {
+      // Post message to parent
+      if (window.parent !== window) {
+        window.parent.postMessage({
+          type: 'browseros:voice-input',
+          ...data,
+        }, '*');
+      }
+
+      // Dispatch custom event
+      window.dispatchEvent(new CustomEvent('voiceInput', { detail: data }));
+
+      console.log('[BrowserOS Voice] Voice input:', data);
+    }
+
+    // Handle errors
+    function handleError(error) {
+      let message = 'An error occurred. Please try again.';
+
+      switch (error) {
+        case 'no-speech':
+          message = 'No speech detected. Please try again.';
+          break;
+        case 'audio-capture':
+          message = 'Microphone not available. Please check your settings.';
+          break;
+        case 'not-allowed':
+          message = 'Microphone access denied. Please allow access.';
+          break;
+        case 'network':
+          message = 'Network error. Please check your connection.';
+          break;
+      }
+
+      modalTitle.textContent = 'Error';
+      modalText.textContent = message;
+      modalIcon.classList.remove('recording', 'processing');
+      waveform.style.display = 'none';
+
+      setTimeout(() => {
+        cancelRecording();
+      }, 2000);
+    }
+
+    // Update UI based on state
+    function updateUI() {
+      if (state.isRecording) {
+        voiceButton.classList.add('recording');
+        modalIcon.classList.add('recording');
+        waveform.style.display = 'flex';
+      } else if (state.isProcessing) {
+        voiceButton.classList.add('processing');
+        modalIcon.classList.add('processing');
+        waveform.style.display = 'none';
+      } else {
+        voiceButton.classList.remove('recording', 'processing');
+        modalIcon.classList.remove('recording', 'processing');
+        waveform.style.display = 'none';
+      }
+    }
+
+    // Event listeners
+    voiceButton.addEventListener('click', () => {
+      if (state.isRecording) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    });
+
+    cancelButton.addEventListener('click', cancelRecording);
+    stopButton.addEventListener('click', stopRecording);
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      // V key to toggle recording
+      if (e.key === 'v' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const activeElement = document.activeElement;
+        if (activeElement.tagName !== 'INPUT' && activeElement.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          if (state.isRecording) {
+            stopRecording();
+          } else {
+            startRecording();
+          }
+        }
+      }
+
+      // Escape to cancel
+      if (e.key === 'Escape' && state.isRecording) {
+        cancelRecording();
+      }
+    });
+
+    // Settings
+    languageSelect.addEventListener('change', (e) => {
+      state.language = e.target.value;
+      if (state.recognition) {
+        state.recognition.lang = state.language;
+      }
+    });
+
+    continuousToggle.addEventListener('click', () => {
+      state.continuous = !state.continuous;
+      continuousToggle.classList.toggle('active');
+      if (state.recognition) {
+        state.recognition.continuous = state.continuous;
+      }
+    });
+
+    interimToggle.addEventListener('click', () => {
+      state.interimResults = !state.interimResults;
+      interimToggle.classList.toggle('active');
+      if (state.recognition) {
+        state.recognition.interimResults = state.interimResults;
+      }
+    });
+
+    // Public API
+    window.BrowserOSVoice = {
+      startRecording,
+      stopRecording,
+      cancelRecording,
+      isRecording: () => state.isRecording,
+      getTranscript: () => state.transcript,
+      setLanguage: (lang) => {
+        state.language = lang;
+        languageSelect.value = lang;
+      },
+    };
+
+    // Notify ready
+    console.log('[BrowserOS Voice] Component ready');
+    window.dispatchEvent(new Event('voiceReady'));
+
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'browseros:voice-ready' }, '*');
+    }
+  </script>
+</body>
+</html>
