@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![License: AGPL v3 + Commons Clause](https://img.shields.io/badge/License-AGPL%20v3%20%2B%20Commons%20Clause-blue.svg)](LICENSE)
+[![License: Polyform Noncommercial](https://img.shields.io/badge/License-Polyform%20Noncommercial-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Built with Chromium](https://img.shields.io/badge/Built%20with-Chromium-4285F4?logo=googlechrome&logoColor=white)](https://www.chromium.org/)
 
@@ -128,15 +128,16 @@ Contributions are welcome! This is an independent open-source project.
 
 ## 📄 License
 
-NexusOS is licensed under the [AGPL-3.0 license with Commons Clause](LICENSE).
+NexusOS is licensed under the [Polyform Noncommercial License 1.0.0](LICENSE).
 
 **TL;DR:**
-- ✅ Free for personal and internal business use
-- ✅ Open source - view and modify the code
+- ✅ Free for personal use, research, and learning
+- ✅ Free for non-profits, schools, and research organizations
+- ✅ View, modify, and share the code
 - ✅ Fork it and make it your own
-- ❌ Cannot sell it as a service or product without permission
+- ❌ No commercial use without a commercial license
 
-For commercial licensing, contact the repository owner.
+**Need it for business?** Contact the repository owner for a commercial license.
 
 ## 🙏 Credits
 
