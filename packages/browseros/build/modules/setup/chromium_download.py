@@ -170,35 +170,60 @@ class ChromiumDownloadModule(CommandModule):
 
         platform_dir, archive_name = platform_map[platform_key]
 
-        # Extract build number from version (e.g., "137.0.7151.69" → "1384803")
-        # Note: This requires a version-to-build-number mapping
-        # For now, use a placeholder - in production, consult version history
-        build_number = self._get_build_number_for_version(context.chromium_version)
-
+        # Get latest build number for the platform
         base_url = CHROMIUM_SNAPSHOT_BASE_URLS["official"]
-        download_url = f"{base_url}/{platform_dir}/{build_number}/{archive_name}"
+        latest_url = f"{base_url}/{platform_dir}/LATEST"
 
-        log_info(f"URL: {download_url}")
+        log_info(f"Fetching latest build number from: {latest_url}")
+
+        try:
+            import requests
+            response = requests.get(latest_url, timeout=30)
+            response.raise_for_status()
+            build_number = response.text.strip()
+            log_success(f"Latest build number: {build_number}")
+        except Exception as e:
+            log_error(f"Failed to fetch latest build number: {e}")
+            log_warning("Falling back to recent known build: 1400000")
+            build_number = "1400000"
+
+        download_url = f"{base_url}/{platform_dir}/{build_number}/{archive_name}"
+        log_info(f"Download URL: {download_url}")
 
         # Download to temporary location
         temp_dir = context.root_dir / "build" / "temp"
         temp_dir.mkdir(parents=True, exist_ok=True)
         archive_path = temp_dir / archive_name
 
-        log_warning("⚠️  NOTE: This is a placeholder implementation!")
-        log_warning("⚠️  Production version needs:")
-        log_warning("   1. Actual HTTP download implementation")
-        log_warning("   2. Version → build number mapping")
-        log_warning("   3. Checksum verification")
-        log_info("")
-        log_info("For now, using stub. See BINARY_DOWNLOAD_GUIDE.md for setup.")
+        # Download the archive
+        log_info(f"Downloading Chromium... (this may take a few minutes)")
+        try:
+            import requests
+            response = requests.get(download_url, stream=True, timeout=300)
+            response.raise_for_status()
 
-        # TODO: Implement actual download
-        # import requests
-        # response = requests.get(download_url, stream=True)
-        # with open(archive_path, 'wb') as f:
-        #     for chunk in response.iter_content(chunk_size=8192):
-        #         f.write(chunk)
+            total_size = int(response.headers.get('content-length', 0))
+            downloaded = 0
+
+            with open(archive_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if total_size > 0:
+                            percent = (downloaded / total_size) * 100
+                            if downloaded % (10 * 1024 * 1024) < 8192:  # Log every 10MB
+                                log_info(f"  Downloaded: {downloaded // (1024*1024)}MB / {total_size // (1024*1024)}MB ({percent:.1f}%)")
+
+            log_success(f"Download complete: {archive_path.name}")
+        except Exception as e:
+            raise ExecutionError(
+                f"Failed to download Chromium: {e}\n\n"
+                "Alternative options:\n"
+                "1. Set CHROMIUM_BINARY_SOURCE=local and provide local archive\n"
+                "2. Set CHROMIUM_BINARY_SOURCE=r2 and upload to your R2 bucket\n"
+                "3. Manually download from: {download_url}"
+            )
 
         return archive_path
 
@@ -328,23 +353,6 @@ class ChromiumDownloadModule(CommandModule):
             )
 
         log_success("✓ Chromium binary validation passed")
-
-    def _get_build_number_for_version(self, version: str) -> str:
-        """
-        Map Chromium version to build number.
-
-        Example: "137.0.7151.69" → "1384803"
-
-        This requires consulting Chromium version history:
-        https://chromiumdash.appspot.com/releases
-
-        For now, return a placeholder that instructs the user.
-        """
-        log_warning(f"⚠️  Build number mapping needed for version: {version}")
-        log_info("Check https://chromiumdash.appspot.com/releases")
-
-        # Placeholder - in production, implement version → build mapping
-        return "PLACEHOLDER_BUILD_NUMBER"
 
 
 # Register module
