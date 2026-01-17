@@ -60,6 +60,16 @@ class EnvConfig:
         return os.environ.get("CHROMIUM_SRC")
 
     @property
+    def chromium_binary_source(self) -> Optional[str]:
+        """Source for pre-built Chromium binaries (r2, official, ungoogled, local)"""
+        return os.environ.get("CHROMIUM_BINARY_SOURCE")
+
+    @property
+    def chromium_binary_path(self) -> Optional[str]:
+        """Path to local Chromium binary archive (when CHROMIUM_BINARY_SOURCE=local)"""
+        return os.environ.get("CHROMIUM_BINARY_PATH")
+
+    @property
     def arch(self) -> Optional[str]:
         """Target architecture (x64, arm64, universal)"""
         return os.environ.get("ARCH")

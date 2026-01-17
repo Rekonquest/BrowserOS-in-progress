@@ -94,7 +94,18 @@ class ChromiumDownloadModule(CommandModule):
         binary_source = context.env.chromium_binary_source or "official"
         log_info(f"Binary source: {binary_source}")
         log_info(f"Chromium version: {context.chromium_version}")
-        log_info(f"Platform: {context.platform.value}")
+
+        # Determine platform
+        if IS_WINDOWS():
+            platform_name = "windows"
+        elif IS_MACOS():
+            platform_name = "macos"
+        elif IS_LINUX():
+            platform_name = "linux"
+        else:
+            raise ExecutionError("Unsupported platform")
+
+        log_info(f"Platform: {platform_name}")
         log_info(f"Architecture: {context.architecture}")
 
         # Prepare chromium_src directory
@@ -102,11 +113,11 @@ class ChromiumDownloadModule(CommandModule):
 
         # Download based on source
         if binary_source == "official":
-            archive_path = self._download_official_chromium(context)
+            archive_path = self._download_official_chromium(context, platform_name)
         elif binary_source == "ungoogled":
-            archive_path = self._download_ungoogled_chromium(context)
+            archive_path = self._download_ungoogled_chromium(context, platform_name)
         elif binary_source == "r2":
-            archive_path = self._download_r2_chromium(context)
+            archive_path = self._download_r2_chromium(context, platform_name)
         elif binary_source == "local":
             archive_path = self._use_local_chromium(context)
         else:
@@ -133,7 +144,7 @@ class ChromiumDownloadModule(CommandModule):
         chromium_dir.mkdir(parents=True, exist_ok=True)
         log_info(f"Created: {chromium_dir}")
 
-    def _download_official_chromium(self, context: Context) -> Path:
+    def _download_official_chromium(self, context: Context, platform_name: str) -> Path:
         """
         Download from Google's official Chromium snapshot repository.
 
@@ -151,7 +162,7 @@ class ChromiumDownloadModule(CommandModule):
             ("linux", "x64"): ("Linux_x64", "chrome-linux.zip"),
         }
 
-        platform_key = (context.platform.value, context.architecture)
+        platform_key = (platform_name, context.architecture)
         if platform_key not in platform_map:
             raise ExecutionError(
                 f"Unsupported platform/arch for official Chromium: {platform_key}"
@@ -191,7 +202,7 @@ class ChromiumDownloadModule(CommandModule):
 
         return archive_path
 
-    def _download_ungoogled_chromium(self, context: Context) -> Path:
+    def _download_ungoogled_chromium(self, context: Context, platform_name: str) -> Path:
         """Download from Ungoogled Chromium releases."""
         log_info("Downloading from Ungoogled Chromium releases...")
         raise NotImplementedError(
@@ -199,7 +210,7 @@ class ChromiumDownloadModule(CommandModule):
             "Use CHROMIUM_BINARY_SOURCE=r2 for custom binaries."
         )
 
-    def _download_r2_chromium(self, context: Context) -> Path:
+    def _download_r2_chromium(self, context: Context, platform_name: str) -> Path:
         """
         Download from custom R2 storage.
 
@@ -212,7 +223,7 @@ class ChromiumDownloadModule(CommandModule):
         from build.modules.storage.r2 import get_r2_client, download_file_from_r2
 
         # R2 key pattern
-        platform_arch = f"{context.platform.value}-{context.architecture}"
+        platform_arch = f"{platform_name}-{context.architecture}"
         r2_key = f"binaries/chromium/chromium-{context.chromium_version}-{platform_arch}.tar.xz"
 
         log_info(f"R2 key: {r2_key}")
