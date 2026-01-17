@@ -319,6 +319,22 @@ class ChromiumDownloadModule(CommandModule):
                 "Supported: .zip, .tar.gz, .tar.xz, .tar.bz2"
             )
 
+        # Flatten directory structure if archive extracted to single subdirectory
+        # (e.g., chrome-win.zip extracts to chrome-win/ folder)
+        subdirs = [d for d in chromium_dir.iterdir() if d.is_dir()]
+        if len(subdirs) == 1 and not any(f.is_file() for f in chromium_dir.iterdir()):
+            # Only one subdirectory and no files at top level - flatten it
+            subdir = subdirs[0]
+            log_info(f"Flattening directory structure from: {subdir.name}")
+
+            # Move all contents from subdirectory to parent
+            for item in subdir.iterdir():
+                shutil.move(str(item), str(chromium_dir / item.name))
+
+            # Remove empty subdirectory
+            subdir.rmdir()
+            log_success(f"Flattened to: {chromium_dir}")
+
         # Clean up archive
         archive_path.unlink()
         log_info("Cleaned up archive file")
