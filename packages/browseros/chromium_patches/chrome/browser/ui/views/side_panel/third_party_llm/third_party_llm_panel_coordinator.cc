@@ -175,7 +175,11 @@ index 0000000000000..f87c563fdd645
 +  web_view_ = nullptr;
 +  provider_selector_ = nullptr;
 +  copy_feedback_label_ = nullptr;
++  token_counter_label_ = nullptr;
 +  menu_button_ = nullptr;
++
++  // Reset token counter
++  estimated_tokens_ = 0;
 +
 +  // Stop observing any previous views to prevent dangling observations.
 +  view_observation_.RemoveAllObservations();
@@ -218,9 +222,18 @@ index 0000000000000..f87c563fdd645
 +  copy_feedback_label_->SetEnabledColor(ui::kColorLabelForegroundSecondary);
 +  copy_feedback_label_->SetFontList(
 +      copy_feedback_label_->font_list().DeriveWithSizeDelta(-1));
-+  
++
++  // Add token counter label
++  token_counter_label_ = header_container->AddChildView(
++      std::make_unique<views::Label>(u"Tokens: 0"));
++  token_counter_label_->SetEnabledColor(ui::kColorLabelForegroundSecondary);
++  token_counter_label_->SetFontList(
++      token_counter_label_->font_list().DeriveWithSizeDelta(-1));
++  token_counter_label_->SetHorizontalAlignment(gfx::ALIGN_LEFT);
++
 +  // Observe UI elements so we can reset pointers when they are destroyed.
 +  view_observation_.AddObservation(copy_feedback_label_);
++  view_observation_.AddObservation(token_counter_label_);
 +  view_observation_.AddObservation(provider_selector_);
 +  
 +  // Add flexible spacer
@@ -240,7 +253,21 @@ index 0000000000000..f87c563fdd645
 +  copy_button->SetPreferredSize(gfx::Size(32, 32));
 +  copy_button->SetImageHorizontalAlignment(views::ImageButton::ALIGN_CENTER);
 +  copy_button->SetImageVerticalAlignment(views::ImageButton::ALIGN_MIDDLE);
-+  
++
++  // Add copy reply button
++  auto* copy_reply_button = header->AddChildView(
++      std::make_unique<views::ImageButton>(base::BindRepeating(
++          &ThirdPartyLlmPanelCoordinator::OnCopyReply,
++          weak_factory_.GetWeakPtr())));
++  copy_reply_button->SetImageModel(
++      views::Button::STATE_NORMAL,
++      ui::ImageModel::FromVectorIcon(vector_icons::kCopyIcon, ui::kColorIcon, 20));
++  copy_reply_button->SetAccessibleName(u"Copy selected text");
++  copy_reply_button->SetTooltipText(u"Copy selected text from chat");
++  copy_reply_button->SetPreferredSize(gfx::Size(32, 32));
++  copy_reply_button->SetImageHorizontalAlignment(views::ImageButton::ALIGN_CENTER);
++  copy_reply_button->SetImageVerticalAlignment(views::ImageButton::ALIGN_MIDDLE);
++
 +  // Add screenshot button
 +  auto* screenshot_button = header->AddChildView(
 +      std::make_unique<views::ImageButton>(base::BindRepeating(
@@ -531,6 +558,9 @@ index 0000000000000..f87c563fdd645
 +        provider_url, content::Referrer(), ui::PAGE_TRANSITION_AUTO_TOPLEVEL, std::string());
 +  }
 +
++  // Update token counter display for new provider
++  UpdateTokenCounter();
++
 +  provider_change_in_progress_ = false;
 +}
 +
@@ -737,6 +767,142 @@ index 0000000000000..f87c563fdd645
 +  }
 +}
 +
++void ThirdPartyLlmPanelCoordinator::OnCopyReply() {
++  if (!owned_web_contents_) {
++    return;
++  }
++
++  // Execute JavaScript to copy selected text from the WebView
++  std::string js_code = R"(
++    (function() {
++      const selection = window.getSelection();
++      if (selection && selection.toString().length > 0) {
++        return selection.toString();
++      }
++      // If nothing is selected, try to get the last assistant message
++      // This is provider-specific, so we'll try common patterns
++
++      // ChatGPT pattern
++      const chatGptMessages = document.querySelectorAll('[data-message-author-role="assistant"]');
++      if (chatGptMessages.length > 0) {
++        const lastMsg = chatGptMessages[chatGptMessages.length - 1];
++        return lastMsg.innerText || lastMsg.textContent;
++      }
++
++      // Claude pattern
++      const claudeMessages = document.querySelectorAll('[data-testid="message-content"]');
++      if (claudeMessages.length > 0) {
++        // Get odd-indexed messages (Claude's responses are typically odd)
++        for (let i = claudeMessages.length - 1; i >= 0; i--) {
++          if (i % 2 === 1) {
++            return claudeMessages[i].innerText || claudeMessages[i].textContent;
++          }
++        }
++      }
++
++      // Generic fallback: try to find any message-like content
++      const messages = document.querySelectorAll('.message, .response, [class*="message"], [class*="response"]');
++      if (messages.length > 0) {
++        const lastMsg = messages[messages.length - 1];
++        return lastMsg.innerText || lastMsg.textContent;
++      }
++
++      return '';
++    })();
++  )";
++
++  owned_web_contents_->GetPrimaryMainFrame()->ExecuteJavaScriptForTests(
++      base::UTF8ToUTF16(js_code),
++      base::BindOnce([](base::WeakPtr<ThirdPartyLlmPanelCoordinator> coordinator,
++                        base::Value result) {
++        if (!coordinator) {
++          return;
++        }
++
++        std::string text;
++        if (result.is_string()) {
++          text = result.GetString();
++        }
++
++        if (!text.empty()) {
++          // Copy to clipboard
++          ui::ScopedClipboardWriter clipboard_writer(ui::ClipboardBuffer::kCopyPaste);
++          clipboard_writer.WriteText(base::UTF8ToUTF16(text));
++
++          browseros_metrics::BrowserOSMetrics::Log("llmchat.reply.copied");
++
++          // Update token counter with the copied text
++          coordinator->estimated_tokens_ += static_cast<int>(text.length() / 4);
++          coordinator->UpdateTokenCounter();
++
++          // Show feedback message
++          if (coordinator->copy_feedback_label_) {
++            coordinator->copy_feedback_label_->SetText(u"Reply copied to clipboard");
++            coordinator->copy_feedback_label_->SetVisible(true);
++
++            if (coordinator->feedback_timer_->IsRunning()) {
++              coordinator->feedback_timer_->Stop();
++            }
++
++            coordinator->feedback_timer_->Start(
++                FROM_HERE, base::Seconds(2.5),
++                base::BindOnce(&ThirdPartyLlmPanelCoordinator::HideFeedbackLabel,
++                              coordinator));
++          }
++        } else {
++          // No text found
++          if (coordinator->copy_feedback_label_) {
++            coordinator->copy_feedback_label_->SetText(u"No text selected");
++            coordinator->copy_feedback_label_->SetVisible(true);
++
++            if (coordinator->feedback_timer_->IsRunning()) {
++              coordinator->feedback_timer_->Stop();
++            }
++
++            coordinator->feedback_timer_->Start(
++                FROM_HERE, base::Seconds(2.5),
++                base::BindOnce(&ThirdPartyLlmPanelCoordinator::HideFeedbackLabel,
++                              coordinator));
++          }
++        }
++      }, weak_factory_.GetWeakPtr()),
++      content::ISOLATED_WORLD_ID_GLOBAL);
++}
++
++void ThirdPartyLlmPanelCoordinator::UpdateTokenCounter() {
++  if (!token_counter_label_) {
++    return;
++  }
++
++  // Get the context length for the current provider
++  int context_length = 128000;  // Default
++
++  if (current_provider_index_ < providers_.size()) {
++    const auto& provider_name = providers_[current_provider_index_].name;
++
++    // Map provider names to approximate context lengths
++    if (provider_name.find(u"GPT") != std::u16string::npos ||
++        provider_name.find(u"ChatGPT") != std::u16string::npos) {
++      context_length = 128000;  // GPT-4 / GPT-5
++    } else if (provider_name.find(u"Claude") != std::u16string::npos) {
++      context_length = 200000;  // Claude
++    } else if (provider_name.find(u"Gemini") != std::u16string::npos) {
++      context_length = 1048576;  // Gemini 2.0
++    } else if (provider_name.find(u"Grok") != std::u16string::npos) {
++      context_length = 131072;  // Grok
++    }
++  }
++
++  // Format: "Tokens: X / Y (Z%)"
++  int percentage = (estimated_tokens_ * 100) / context_length;
++  std::u16string token_text = u"Tokens: " +
++      base::NumberToString16(estimated_tokens_) + u" / " +
++      base::NumberToString16(context_length) + u" (" +
++      base::NumberToString16(percentage) + u"%)";
++
++  token_counter_label_->SetText(token_text);
++}
++
 +void ThirdPartyLlmPanelCoordinator::HideFeedbackLabel() {
 +  // The timer may fire after the UI element has been destroyed (e.g. the side
 +  // panel was closed). Guard against use-after-free by checking that the raw
@@ -756,6 +922,10 @@ index 0000000000000..f87c563fdd645
 +      feedback_timer_->Stop();
 +    }
 +    copy_feedback_label_ = nullptr;
++  }
++
++  if (observed_view == token_counter_label_) {
++    token_counter_label_ = nullptr;
 +  }
 +
 +  if (observed_view == provider_selector_) {

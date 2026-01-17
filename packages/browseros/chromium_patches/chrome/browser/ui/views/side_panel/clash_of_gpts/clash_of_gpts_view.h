@@ -68,6 +68,8 @@ index 0000000000000..e9bc398177fe3
 +    raw_ptr<views::Combobox> provider_selector = nullptr;
 +    raw_ptr<views::WebView> web_view = nullptr;
 +    raw_ptr<views::Label> pane_label = nullptr;
++    raw_ptr<views::Label> token_counter_label = nullptr;
++    int estimated_tokens = 0;
 +  };
 +
 +  // Creates the UI for a single pane
@@ -82,8 +84,14 @@ index 0000000000000..e9bc398177fe3
 +  // Copies content from the active tab
 +  void OnCopyContent();
 +
++  // Copies selected text or last reply from a pane
++  void OnCopyReply(int pane_index);
++
 +  // Hides the feedback label after a delay
 +  void HideFeedbackLabel();
++
++  // Updates the token counter display for a pane
++  void UpdateTokenCounter(int pane_index);
 +
 +  // Handles pane count radio button selection
 +  void OnPaneCountChanged(int pane_count);

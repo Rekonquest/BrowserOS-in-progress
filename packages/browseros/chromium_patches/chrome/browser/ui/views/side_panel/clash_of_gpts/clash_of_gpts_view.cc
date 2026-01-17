@@ -331,6 +331,26 @@ index 0000000000000..24eefea8b8860
 +  static_cast<views::BoxLayout*>(header->GetLayoutManager())
 +      ->SetFlexForView(spacer, 1);
 +
++  // Add token counter label
++  panes_[pane_index].token_counter_label = header->AddChildView(
++      std::make_unique<views::Label>(u"0 tok"));
++  panes_[pane_index].token_counter_label->SetEnabledColor(ui::kColorLabelForegroundSecondary);
++  panes_[pane_index].token_counter_label->SetFontList(
++      panes_[pane_index].token_counter_label->font_list().DeriveWithSizeDelta(-1));
++
++  // Add copy reply button
++  auto* copy_reply_button = header->AddChildView(
++      std::make_unique<views::ImageButton>(base::BindRepeating(
++          &ClashOfGptsView::OnCopyReply, base::Unretained(this), pane_index)));
++  copy_reply_button->SetImageModel(
++      views::Button::STATE_NORMAL,
++      ui::ImageModel::FromVectorIcon(vector_icons::kCopyIcon, ui::kColorIcon, 18));
++  copy_reply_button->SetAccessibleName(u"Copy reply");
++  copy_reply_button->SetTooltipText(u"Copy selected text or last reply");
++  copy_reply_button->SetPreferredSize(gfx::Size(28, 28));
++  copy_reply_button->SetImageHorizontalAlignment(views::ImageButton::ALIGN_CENTER);
++  copy_reply_button->SetImageVerticalAlignment(views::ImageButton::ALIGN_MIDDLE);
++
 +  // Add open in new tab button
 +  auto* open_button = header->AddChildView(
 +      std::make_unique<views::ImageButton>(base::BindRepeating(
@@ -390,6 +410,9 @@ index 0000000000000..24eefea8b8860
 +  }
 +
 +  coordinator_->SetProviderForPane(pane_index, selected_index.value());
++
++  // Update token counter for the new provider
++  UpdateTokenCounter(pane_index);
 +}
 +
 +void ClashOfGptsView::OnOpenInNewTab(int pane_index) {
@@ -412,6 +435,156 @@ index 0000000000000..24eefea8b8860
 +
 +void ClashOfGptsView::OnCopyContent() {
 +  coordinator_->CopyContentToAll();
++}
++
++void ClashOfGptsView::OnCopyReply(int pane_index) {
++  content::WebContents* web_contents = GetWebContentsForPane(pane_index);
++  if (!web_contents) {
++    return;
++  }
++
++  // Execute JavaScript to copy selected text from the WebView
++  std::string js_code = R"(
++    (function() {
++      const selection = window.getSelection();
++      if (selection && selection.toString().length > 0) {
++        return selection.toString();
++      }
++      // If nothing is selected, try to get the last assistant message
++      // This is provider-specific, so we'll try common patterns
++
++      // ChatGPT pattern
++      const chatGptMessages = document.querySelectorAll('[data-message-author-role="assistant"]');
++      if (chatGptMessages.length > 0) {
++        const lastMsg = chatGptMessages[chatGptMessages.length - 1];
++        return lastMsg.innerText || lastMsg.textContent;
++      }
++
++      // Claude pattern
++      const claudeMessages = document.querySelectorAll('[data-testid="message-content"]');
++      if (claudeMessages.length > 0) {
++        // Get odd-indexed messages (Claude's responses are typically odd)
++        for (let i = claudeMessages.length - 1; i >= 0; i--) {
++          if (i % 2 === 1) {
++            return claudeMessages[i].innerText || claudeMessages[i].textContent;
++          }
++        }
++      }
++
++      // Generic fallback: try to find any message-like content
++      const messages = document.querySelectorAll('.message, .response, [class*="message"], [class*="response"]');
++      if (messages.length > 0) {
++        const lastMsg = messages[messages.length - 1];
++        return lastMsg.innerText || lastMsg.textContent;
++      }
++
++      return '';
++    })();
++  )";
++
++  web_contents->GetPrimaryMainFrame()->ExecuteJavaScriptForTests(
++      base::UTF8ToUTF16(js_code),
++      base::BindOnce([](base::WeakPtr<ClashOfGptsView> view, int pane,
++                        base::Value result) {
++        if (!view) {
++          return;
++        }
++
++        std::string text;
++        if (result.is_string()) {
++          text = result.GetString();
++        }
++
++        if (!text.empty()) {
++          // Copy to clipboard
++          ui::ScopedClipboardWriter clipboard_writer(ui::ClipboardBuffer::kCopyPaste);
++          clipboard_writer.WriteText(base::UTF8ToUTF16(text));
++
++          // Update token counter with the copied text
++          if (pane >= 0 && pane < static_cast<int>(view->panes_.size())) {
++            view->panes_[pane].estimated_tokens += static_cast<int>(text.length() / 4);
++            view->UpdateTokenCounter(pane);
++          }
++
++          // Show feedback message
++          if (view->copy_feedback_label_) {
++            view->copy_feedback_label_->SetText(
++                u"Pane " + base::NumberToString16(pane + 1) + u" reply copied");
++            view->copy_feedback_label_->SetVisible(true);
++
++            if (view->feedback_timer_->IsRunning()) {
++              view->feedback_timer_->Stop();
++            }
++
++            view->feedback_timer_->Start(
++                FROM_HERE, base::Seconds(2.5),
++                base::BindOnce(&ClashOfGptsView::HideFeedbackLabel,
++                              view));
++          }
++        } else {
++          // No text found
++          if (view->copy_feedback_label_) {
++            view->copy_feedback_label_->SetText(u"No text selected");
++            view->copy_feedback_label_->SetVisible(true);
++
++            if (view->feedback_timer_->IsRunning()) {
++              view->feedback_timer_->Stop();
++            }
++
++            view->feedback_timer_->Start(
++                FROM_HERE, base::Seconds(2.5),
++                base::BindOnce(&ClashOfGptsView::HideFeedbackLabel,
++                              view));
++          }
++        }
++      }, weak_factory_.GetWeakPtr(), pane_index),
++      content::ISOLATED_WORLD_ID_GLOBAL);
++}
++
++void ClashOfGptsView::UpdateTokenCounter(int pane_index) {
++  if (pane_index < 0 || pane_index >= static_cast<int>(panes_.size())) {
++    return;
++  }
++
++  if (!panes_[pane_index].token_counter_label) {
++    return;
++  }
++
++  // Get the context length for the current provider
++  int context_length = 128000;  // Default
++
++  size_t provider_index = coordinator_->GetProviderIndexForPane(pane_index);
++  const auto& providers = coordinator_->GetProviders();
++  if (provider_index < providers.size()) {
++    const auto& provider_name = providers[provider_index].name;
++
++    // Map provider names to approximate context lengths
++    if (provider_name.find(u"GPT") != std::u16string::npos ||
++        provider_name.find(u"ChatGPT") != std::u16string::npos) {
++      context_length = 128000;  // GPT-4 / GPT-5
++    } else if (provider_name.find(u"Claude") != std::u16string::npos) {
++      context_length = 200000;  // Claude
++    } else if (provider_name.find(u"Gemini") != std::u16string::npos) {
++      context_length = 1048576;  // Gemini 2.0
++    } else if (provider_name.find(u"Grok") != std::u16string::npos) {
++      context_length = 131072;  // Grok
++    }
++  }
++
++  int tokens = panes_[pane_index].estimated_tokens;
++  int percentage = (tokens * 100) / context_length;
++
++  // Format compactly for pane header: "1.2k (5%)"
++  std::u16string token_text;
++  if (tokens >= 1000) {
++    token_text = base::NumberToString16(tokens / 1000) + u"." +
++                 base::NumberToString16((tokens % 1000) / 100) + u"k";
++  } else {
++    token_text = base::NumberToString16(tokens);
++  }
++  token_text += u" (" + base::NumberToString16(percentage) + u"%)";
++
++  panes_[pane_index].token_counter_label->SetText(token_text);
 +}
 +
 +void ClashOfGptsView::HideFeedbackLabel() {

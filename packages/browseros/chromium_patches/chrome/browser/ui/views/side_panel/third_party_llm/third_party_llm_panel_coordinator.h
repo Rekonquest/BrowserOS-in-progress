@@ -163,6 +163,7 @@ index 0000000000000..ef7c13f156ea7
 +  void OnRefreshContent();
 +  void OnOpenInNewTab();
 +  void OnCopyContent();
++  void OnCopyReply();
 +  void OnScreenshotContent();
 +  void OnAccessibilityTreeReceived(ui::AXTreeUpdate& update);
 +  void OnScreenshotCaptured(const gfx::Image& image);
@@ -172,6 +173,7 @@ index 0000000000000..ef7c13f156ea7
 +      std::u16string* output);
 +  void HideFeedbackLabel();
 +  void ShowOptionsMenu();
++  void UpdateTokenCounter();
 +
 +  // Provider management
 +  std::vector<LlmProviderInfo> GetDefaultProviders() const;
@@ -197,6 +199,7 @@ index 0000000000000..ef7c13f156ea7
 +  raw_ptr<views::WebView> web_view_ = nullptr;
 +  raw_ptr<views::Combobox> provider_selector_ = nullptr;
 +  raw_ptr<views::Label> copy_feedback_label_ = nullptr;
++  raw_ptr<views::Label> token_counter_label_ = nullptr;
 +  raw_ptr<views::ImageButton> menu_button_ = nullptr;
 +
 +  // We need to own the WebContents because WebView doesn't take ownership
@@ -212,6 +215,9 @@ index 0000000000000..ef7c13f156ea7
 +  // Temporary storage for page info during copy
 +  std::u16string page_title_;
 +  GURL page_url_;
++
++  // Token tracking
++  int estimated_tokens_ = 0;
 +  
 +  // Handler for unhandled keyboard events
 +  views::UnhandledKeyboardEventHandler unhandled_keyboard_event_handler_;
