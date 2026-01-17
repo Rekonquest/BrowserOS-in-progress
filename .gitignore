@@ -19,6 +19,7 @@
 
 
 
-nxtscape-cli-access.json
+browseros-cli-access.json
+nxtscape-cli-access.json  # Legacy name kept for backwards compatibility
 gclient.json
 .env
