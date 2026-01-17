@@ -35,12 +35,57 @@ NexusOS is an open-source Chromium fork designed for developers and power users 
 - **Local Model Support** - Run completely offline with local LLMs
 - **Agent Automation** - Automate web tasks with AI assistance
 
-## 🏗️ Building from Source
+## ⚡ Quick Build (Recommended)
+
+**Following Brave/Vivaldi's approach:** Download pre-built Chromium binaries instead of compiling from source!
+
+### Why Binary Download?
+- ✅ **10 minutes** instead of 4-8 hours
+- ✅ **2 GB disk space** instead of 100+ GB
+- ✅ **Simple setup** - no complex build toolchains
+- ✅ **Same result** - full NexusOS browser with all features
+
+### Quick Start (Binary Download)
+```bash
+# 1. Clone repository
+git clone https://github.com/Rekonquest/BrowserOS-in-progress.git
+cd BrowserOS-in-progress/packages/browseros
+
+# 2. Install Python dependencies
+pip install uv
+uv sync
+
+# 3. Set up R2 credentials (for downloading pre-built Chromium)
+export R2_ACCOUNT_ID="your_account_id"
+export R2_ACCESS_KEY_ID="your_access_key"
+export R2_SECRET_ACCESS_KEY="your_secret_key"
+export CHROMIUM_BINARY_SOURCE=r2
+
+# 4. Build NexusOS (downloads Chromium, applies branding, packages)
+uv run python -m build.browseros build \
+  --modules chromium_download,resources,package_linux
+
+# 5. Find your package
+ls -lh dist/NexusOS*.AppImage
+```
+
+**Total time:** ~10 minutes | **Disk space:** ~2 GB
+
+📖 **See [BINARY_DOWNLOAD_GUIDE.md](packages/browseros/BINARY_DOWNLOAD_GUIDE.md) for complete instructions**
+
+---
+
+## 🏗️ Building from Source (Advanced)
+
+**Note:** Most users should use the [binary download approach](#-quick-build-recommended) above.
+Only build from source if you need custom C++ patches or are contributing to Chromium itself.
 
 ### Prerequisites
 - Python 3.12 or higher
 - Git with submodule support
-- Platform-specific build tools (see build documentation)
+- **100+ GB disk space** for Chromium source
+- **4-8 hours** for compilation
+- Platform-specific build tools (depot_tools, GN, Ninja)
 
 ### Quick Start
 ```bash
@@ -78,15 +123,17 @@ python demo_app.py
 ## 📚 Documentation
 
 ### Build System
-- See [packages/browseros/BUILD_SYSTEM_MODERNIZATION.md](packages/browseros/BUILD_SYSTEM_MODERNIZATION.md)
-- Migration guide: [packages/browseros/MIGRATION_GUIDE.md](packages/browseros/MIGRATION_GUIDE.md)
+- **[Binary Download Guide](packages/browseros/BINARY_DOWNLOAD_GUIDE.md)** ⭐ **Recommended** - 10-minute builds
+- [Build System Modernization](packages/browseros/BUILD_SYSTEM_MODERNIZATION.md) - Advanced source builds
+- [Migration Guide](packages/browseros/MIGRATION_GUIDE.md) - Upgrading from older versions
+- [Package Info](PACKAGE_INFO.md) - Demo application and packaging details
 
 ### Testing
-- Test documentation: [packages/browseros/tests/README.md](packages/browseros/tests/README.md)
-- Test coverage reports available in `htmlcov/` after running tests
+- [Test Documentation](packages/browseros/tests/README.md) - Running the test suite
+- [Test Coverage Reports](packages/browseros/htmlcov/) - Available after running `make test-coverage`
 
-### Windows Build
-- Windows-specific information: [WINDOWS_BUILD_ASSESSMENT.md](WINDOWS_BUILD_ASSESSMENT.md)
+### Platform-Specific
+- [Windows Build Assessment](WINDOWS_BUILD_ASSESSMENT.md) - Windows-specific information
 
 ## 🤝 Contributing
 

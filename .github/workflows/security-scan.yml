@@ -1,4 +1,17 @@
-name: Security Scan
+name: Security Scan - NexusOS Dependencies
+
+# This workflow scans ONLY NexusOS-specific code and dependencies.
+# Chromium security is handled by the Chromium team - we use their
+# pre-built binaries which include all security patches.
+#
+# Scans:
+# ✅ Python dependencies (pyproject.toml, uv.lock)
+# ✅ NexusOS build system code
+# ✅ Demo application dependencies
+#
+# Does NOT scan:
+# ❌ Chromium source (not included in repo with binary download approach)
+# ❌ Chromium binaries (handled by upstream Chromium security team)
 
 on:
   push:
@@ -8,6 +21,7 @@ on:
     paths:
       - "packages/browseros/pyproject.toml"
       - "packages/browseros/uv.lock"
+      - "packages/browseros/demo_requirements.txt"
       - ".github/workflows/security-scan.yml"
   pull_request:
     branches:
@@ -16,6 +30,7 @@ on:
     paths:
       - "packages/browseros/pyproject.toml"
       - "packages/browseros/uv.lock"
+      - "packages/browseros/demo_requirements.txt"
       - ".github/workflows/security-scan.yml"
   schedule:
     # Run daily at 2 AM UTC to catch newly disclosed vulnerabilities
@@ -77,3 +92,37 @@ jobs:
         with:
           fail-on-severity: moderate
           deny-licenses: GPL-2.0, GPL-3.0
+
+  chromium-security-info:
+    name: Chromium Security Info
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+
+    steps:
+      - name: Display Chromium Security Policy
+        run: |
+          echo "=================================================="
+          echo "CHROMIUM SECURITY POLICY"
+          echo "=================================================="
+          echo ""
+          echo "NexusOS uses pre-built Chromium binaries from:"
+          echo "  - Official Chromium snapshots (commondatastorage.googleapis.com)"
+          echo "  - Or custom R2-hosted binaries built from official source"
+          echo ""
+          echo "Chromium security updates are handled by:"
+          echo "  ✅ Chromium Security Team"
+          echo "  ✅ Regular binary updates to match latest stable"
+          echo "  ✅ No custom C++ code (no new attack surface)"
+          echo ""
+          echo "Security responsibility split:"
+          echo "  📦 Chromium Team: Browser engine, V8, network stack"
+          echo "  🔧 NexusOS Team: Build system, Python dependencies, packaging"
+          echo ""
+          echo "To update Chromium version:"
+          echo "  1. Download latest from chromiumdash.appspot.com/releases"
+          echo "  2. Upload to R2 with version tag"
+          echo "  3. Update CHROMIUM_VERSION in config"
+          echo "  4. Rebuild packages"
+          echo ""
+          echo "This workflow only scans NexusOS Python dependencies."
+          echo "=================================================="

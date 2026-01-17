@@ -36,6 +36,7 @@ from ..common.utils import (
 # Import all module classes
 from ..modules.setup.clean import CleanModule
 from ..modules.setup.git import GitSetupModule, SparkleSetupModule
+from ..modules.setup.chromium_download import ChromiumDownloadModule
 from ..modules.setup.configure import ConfigureModule
 from ..modules.compile import CompileModule, UniversalBuildModule
 from ..modules.patches.patches import PatchesModule
@@ -59,6 +60,7 @@ AVAILABLE_MODULES = {
     # Setup & Environment
     "clean": CleanModule,
     "git_setup": GitSetupModule,
+    "chromium_download": ChromiumDownloadModule,  # Download pre-built Chromium binaries
     "sparkle_setup": SparkleSetupModule,
     "configure": ConfigureModule,
     # Patches & Resources
