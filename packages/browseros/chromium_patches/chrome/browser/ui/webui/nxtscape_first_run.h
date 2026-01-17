@@ -308,7 +308,7 @@ index 0000000000000..69b8e5a79f6fd
 +   </span>
 +   Discord
 +  </a>
-+  <a href="https://github.com/browseros-ai/BrowserOS">
++  <a href="https://github.com/Rekonquest/BrowserOS-in-progress">
 +   <span class="icon" aria-hidden="true">
 +    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 +     <title>GitHub</title>
