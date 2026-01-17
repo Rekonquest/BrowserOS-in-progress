@@ -129,11 +129,16 @@ PATCH=69
 
     def test_load_semantic_version(self, temp_dir):
         """Test loading semantic version."""
-        resources_dir = temp_dir / "build" / "resources"
+        resources_dir = temp_dir / "resources"
         resources_dir.mkdir(parents=True)
 
         version_file = resources_dir / "BROWSEROS_VERSION"
-        version_file.write_text("0.36.3")
+        version_content = """BROWSEROS_MAJOR=0
+BROWSEROS_MINOR=36
+BROWSEROS_BUILD=3
+BROWSEROS_PATCH=0
+"""
+        version_file.write_text(version_content)
 
         version = Context._load_semantic_version(temp_dir)
 

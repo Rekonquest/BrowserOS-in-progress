@@ -17,6 +17,7 @@ from .logger import (  # noqa: F401
     log_error,
     log_warning,
     log_success,
+    log_debug,
     _log_to_file,
 )
 

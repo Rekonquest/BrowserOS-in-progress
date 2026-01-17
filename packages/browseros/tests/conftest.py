@@ -39,15 +39,22 @@ def mock_build_root(temp_dir: Path, mock_chromium_version_file: Path) -> Path:
     """Create a mock build root directory structure."""
     # Create necessary subdirectories
     (temp_dir / "build").mkdir()
+    (temp_dir / "build" / "config").mkdir()
+    (temp_dir / "resources").mkdir()
     (temp_dir / "chromium_src").mkdir()
     (temp_dir / "out").mkdir()
 
-    # Create BROWSEROS_VERSION file
-    version_file = temp_dir / "BROWSEROS_VERSION"
-    version_file.write_text("0.36.3")
+    # Create BROWSEROS_VERSION file in resources/ with KEY=VALUE format
+    version_file = temp_dir / "resources" / "BROWSEROS_VERSION"
+    version_content = """BROWSEROS_MAJOR=0
+BROWSEROS_MINOR=36
+BROWSEROS_BUILD=3
+BROWSEROS_PATCH=0
+"""
+    version_file.write_text(version_content)
 
-    # Create BROWSEROS_BUILD_OFFSET file
-    offset_file = temp_dir / "BROWSEROS_BUILD_OFFSET"
+    # Create BROWSEROS_BUILD_OFFSET file in build/config/
+    offset_file = temp_dir / "build" / "config" / "BROWSEROS_BUILD_OFFSET"
     offset_file.write_text("5")
 
     return temp_dir
