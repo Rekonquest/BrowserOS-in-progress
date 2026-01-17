@@ -44,34 +44,65 @@ NexusOS is an open-source Chromium fork designed for developers and power users 
 - ✅ **2 GB disk space** instead of 100+ GB
 - ✅ **Simple setup** - no complex build toolchains
 - ✅ **Same result** - full NexusOS browser with all features
+- ✅ **All platforms** - Windows, Linux, macOS
 
-### Quick Start (Binary Download)
+### Quick Start - Linux
+
 ```bash
-# 1. Clone repository
+# 1. Clone and setup
 git clone https://github.com/Rekonquest/BrowserOS-in-progress.git
 cd BrowserOS-in-progress/packages/browseros
+pip install uv && uv sync
 
-# 2. Install Python dependencies
-pip install uv
-uv sync
-
-# 3. Set up R2 credentials (for downloading pre-built Chromium)
-export R2_ACCOUNT_ID="your_account_id"
-export R2_ACCESS_KEY_ID="your_access_key"
-export R2_SECRET_ACCESS_KEY="your_secret_key"
-export CHROMIUM_BINARY_SOURCE=r2
-
-# 4. Build NexusOS (downloads Chromium, applies branding, packages)
+# 2. Build NexusOS (auto-downloads Chromium)
+export CHROMIUM_BINARY_SOURCE=official
 uv run python -m build.browseros build \
   --modules chromium_download,resources,package_linux
 
-# 5. Find your package
-ls -lh dist/NexusOS*.AppImage
+# 3. Find your packages
+ls -lh releases/*/NexusOS*.{AppImage,deb}
+```
+
+### Quick Start - Windows
+
+```powershell
+# 1. Clone and setup
+git clone https://github.com/Rekonquest/BrowserOS-in-progress.git
+cd BrowserOS-in-progress\packages\browseros
+pip install uv; uv sync
+
+# 2. Build NexusOS (auto-downloads Chromium)
+$env:CHROMIUM_BINARY_SOURCE="official"
+uv run python -m build.browseros build `
+  --modules chromium_download,resources,package_windows
+
+# 3. Find your packages (.exe installer + portable .zip)
+dir releases\*\*.exe, releases\*\*.zip
+```
+
+### Quick Start - macOS
+
+```bash
+# 1. Clone and setup
+git clone https://github.com/Rekonquest/BrowserOS-in-progress.git
+cd BrowserOS-in-progress/packages/browseros
+pip install uv && uv sync
+
+# 2. Build NexusOS (auto-downloads Chromium)
+export CHROMIUM_BINARY_SOURCE=official
+uv run python -m build.browseros build \
+  --modules chromium_download,resources,package_macos
+
+# 3. Find your package
+ls -lh releases/*/NexusOS*.dmg
 ```
 
 **Total time:** ~10 minutes | **Disk space:** ~2 GB
 
-📖 **See [BINARY_DOWNLOAD_GUIDE.md](packages/browseros/BINARY_DOWNLOAD_GUIDE.md) for complete instructions**
+📖 **Platform-specific guides:**
+- **[Windows Build Guide](WINDOWS_BUILD_GUIDE.md)** - `.exe` installer + portable `.zip`
+- **[Binary Download Guide](packages/browseros/BINARY_DOWNLOAD_GUIDE.md)** - All platforms detailed guide
+- **[Build Delivered](NEXUSOS_BUILD_DELIVERED.md)** - What was delivered and how to use it
 
 ---
 
